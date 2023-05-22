@@ -58,6 +58,10 @@
               <label for="port" class="form-label">Port</label>
               <input required name="port" id="port" type="text" th:value="${user.mailPort}" class="form-control" placeholder="587">
             </div>
+            <div class="mb-3">
+              <label for="port" class="form-label">Interval (sekunder)</label>
+              <input required name="interval" id="interval" type="number" th:value="${user.intervalPeriod}" class="form-control" placeholder="587">
+            </div>
             <div class="d-flex justify-content-end gap-2">
               <button type="button" class="btn btn-light border btn-sm" data-bs-dismiss="modal">Avbryt</button>
               <button type="submit" class="btn btn-primary btn-sm">
@@ -113,8 +117,8 @@
             <a class="nav-link d-flex align-items-center" id="dropdownBacktesting" data-bs-toggle="dropdown"
                aria-expanded="false" style="cursor: pointer;">Utskick</a>
             <ul class="dropdown-menu" aria-labelledby="dropdownBacktesting">
-              <li><a class="dropdown-item" href="/user/backtesting/logs" style="cursor: pointer;">Köade utskick</a></li>
-              <li><a class="dropdown-item" href="/user/backtesting/logs" style="cursor: pointer;">Färdiga utskick</a></li>
+              <li><a class="dropdown-item" href="/user/koade-utskick?page=0" style="cursor: pointer;">Köade utskick</a></li>
+              <li><a class="dropdown-item" href="/user/fardiga-utskick?page=0" style="cursor: pointer;">Färdiga utskick</a></li>
               <li><a class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#uploadModal">Nytt utskick</a></li>
             </ul>
           </li>
@@ -147,15 +151,15 @@
                   <div class="d-xl-flex justify-content-between p-3 gap-4">
                     <div class="p-3 me-3">
                       <p class="text-muted mb-0">Alla utskick</p>
-                      <a href="/user/scalp/trades/open" class="display-6 text-body text-decoration-none" th:text="${mailListsFinished.size()} + ${mailListsNotFinished.size()}">0</a>
+                      <a href="/user/scalp/trades/open" class="display-6 text-body text-decoration-none" th:text="${mailListsFinishedTotal} + ${mailListsNotFinishedTotal}">0</a>
                     </div>
                     <div class="p-3 bg-light-green">
                       <p class="text-muted mb-0">Köade utskick</p>
-                      <a href="/user/scalp/trades/open" class="display-6 text-success text-decoration-none" th:text="${mailListsNotFinished.size()}">0</a>
+                      <a href="/user/scalp/trades/open" class="display-6 text-success text-decoration-none" th:text="${mailListsNotFinishedTotal}">0</a>
                     </div>
                     <div class="p-3 bg-light-card">
                       <p class="text-muted mb-0">Färdiga utskick</p>
-                      <a href="/user/scalp/trades/closed" class="display-6 text-muted text-decoration-none" th:text="${mailListsFinished.size()}">0</a>
+                      <a href="/user/scalp/trades/closed" class="display-6 text-muted text-decoration-none" th:text="${mailListsFinishedTotal}">0</a>
                     </div>
                   </div>
                 </div>
@@ -188,26 +192,26 @@
                     <a href="/user/scalp/trades/open" class="d-flex align-items-center text-decoration-none text-body">
                       <i class="bx bx-envelope fs-4 me-2"></i>
                       <h2 class="h5 mb-0">Köade utskick</h2>
-                      <span class="badge rounded-pill bg-primary ms-2" th:text="${mailListsNotFinished.size()}">0</span>
+                      <span class="badge rounded-pill bg-primary ms-2" th:text="${mailListsNotFinishedTotal}">0</span>
                     </a>
                   </div>
 
                   <div style="max-height: 280px; overflow-y: scroll;">
-                    <div th:if="${mailListsNotFinished.size()==0}" class="p-4 center text-center">
+                    <div th:if="${mailListsNotFinishedTotal==0}" class="p-4 center text-center">
                       <div class="center">
                         <span class="text-muted fs-6">Inga köade utskick...</span>
                       </div>
                     </div>
-                    <table th:if="${mailListsNotFinished.size()>0}" class="table" th:each="mailListFinished : ${mailListsNotFinished}">
+                    <table th:if="${mailListsNotFinishedTotal>0}" class="table" th:each="mailListFinished : ${mailListsNotFinished}">
                       <tr class="d-flex justify-content-between align-items-center border-bottom hover-bg">
                         <td class="border-0">
                           <span class="badge bg-secondary border shadow-sm" th:text="${mailListFinished.fileName}"></span>
                         </td>
                         <td class="border-0" th:if="${mailListFinished.ongoing}">
-                          <i class="bx bxs-check-circle fs-lg text-success me-1"></i>
+                          <i data-bs-toggle="tooltip" data-bs-placement="top" title="Utskicket är pågående och skickar till samtliga kontakter" class="bx bxs-check-circle fs-lg text-success me-1"></i>
                         </td>
                         <td class="border-0" th:if="${!mailListFinished.ongoing}">
-                          <i class="bx bxs-x-circle fs-lg text-warning me-1"></i>
+                          <i data-bs-toggle="tooltip" data-bs-placement="top" title="Utskicket väntar på att startdatum för utskick ska nås" class="bx bxs-x-circle fs-lg text-warning me-1"></i>
                         </td>
                       </tr>
                     </table>
@@ -221,17 +225,17 @@
                     <a href="/user/scalp/trades/open" class="d-flex align-items-center text-decoration-none text-body">
                       <i class="bx bx-envelope fs-4 me-2"></i>
                       <h2 class="h5 mb-0">Färdiga utskick</h2>
-                      <span class="badge rounded-pill bg-primary ms-2" th:text="${mailListsFinished.size()}">0</span>
+                      <span class="badge rounded-pill bg-primary ms-2" th:text="${mailListsFinishedTotal}">0</span>
                     </a>
                   </div>
 
                   <div style="max-height: 280px; overflow-y: scroll;">
-                    <div class="p-4 center text-center" th:if="${mailListsFinished.size()==0}">
+                    <div class="p-4 center text-center" th:if="${mailListsFinishedTotal==0}">
                       <div class="center">
                         <span class="text-muted fs-6">Inga färdiga utskick...</span>
                       </div>
                     </div>
-                    <table th:if="${mailListsFinished.size()>0}" class="table" th:each="mailListFinished : ${mailListsFinished}">
+                    <table th:if="${mailListsFinishedTotal>0}" class="table" th:each="mailListFinished : ${mailListsFinished}">
                       <tr class="d-flex justify-content-between align-items-center border-bottom hover-bg">
                         <td class="border-0">
                           <span class="badge bg-secondary border shadow-sm" th:text="${mailListFinished.fileName}"></span>
@@ -253,6 +257,12 @@
   <script src="/vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/js/theme.min.js"></script>
   <script src="/js/main.js"></script>
+  <script>
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+  </script>
   <script>
     document.getElementById('file').addEventListener('change', function(e) {
       var fileNameByInput = e.target.files[0].name;

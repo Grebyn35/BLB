@@ -2,6 +2,8 @@ package com.balumbo.blb.repository;
 
 import com.balumbo.blb.model.MailList;
 import com.balumbo.blb.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,4 +15,5 @@ public interface MailListRepository extends CrudRepository<MailList,Long> {
     MailList findById(long id);
     ArrayList<MailList> findAllByUserId(long userId);
     ArrayList<MailList> findAllByFinishedAndUserId(boolean finished, long userId);
+    Page<MailList> findAllByFinishedAndUserIdOrderByDispatchDate(boolean finished, long userId, Pageable pageable);
 }

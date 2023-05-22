@@ -21,6 +21,8 @@ public class MailList implements Serializable {
     @Column(length=200000000,columnDefinition="LONGTEXT")
     private String mainContent;
     @Column(length=200000000,columnDefinition="LONGTEXT")
+    private String footerContent;
+    @Column(length=200000000,columnDefinition="LONGTEXT")
     private String title;
     private boolean finished;
     private boolean ongoing;

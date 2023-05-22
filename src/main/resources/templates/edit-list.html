@@ -2,7 +2,7 @@
 
 <html lang="sv" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml">
 <head>
-    <title>Utskick</title>
+    <title>Redigera Utskick</title>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
@@ -137,15 +137,15 @@
 <div class="container">
     <div class="d-flex">
         <div class="w-100">
-            <form th:action="@{/user/upload-list/complete}" method="post">
+            <form th:action="'/user/edit-list/' + ${mailList.id}" method="post">
                 <div class="px-lg-4 px-sm-3 px-2 py-lg-5 py-sm-4 py-5">
                     <div class="mb-3">
                         <label class="form-label" for="dispatchName">Namn på utskick</label>
-                        <input name="name" id="dispatchName" th:value="${name}" required class="form-control" type="text">
+                        <input name="name" id="dispatchName" th:value="${mailList.fileName}" required class="form-control" type="text">
                     </div>
                     <div class="mb-3">
                         <label class="form-label" for="dateInput">Startdatum för utskick</label>
-                        <input name="date" id="dateInput" required class="form-control" type="date">
+                        <input name="date" th:value="${mailList.dispatchDate}" id="dateInput" required class="form-control" type="date">
                     </div>
                     <div class="mb-3 d-flex flex-wrap">
                         <label class="form-label me-3" for="variable">Tillgängliga variabler:</label>
@@ -154,7 +154,7 @@
                     <div class="row">
                         <div class="col-xl-6">
                             <label>Titel</label>
-                            <input name="title" oninput="mirrorText(this)" required class="w-100 form-control" type="text">
+                            <input th:value="${mailList.title}" name="title" oninput="mirrorText(this)" required class="w-100 form-control" type="text">
                         </div>
                         <div class="col-xl-6">
                             <label>Mottagaren ser (exempelvärde från uppladdad fil)</label>
@@ -164,7 +164,7 @@
                     <div class="row">
                         <div class="col-xl-6">
                             <label>Huvud innehåll</label>
-                            <textarea oninput="mirrorText(this)" required name="mainContent" class="w-100" cols="30" rows="10">...</textarea>
+                            <textarea th:utext="${mailList.mainContent}" oninput="mirrorText(this)" required name="mainContent" class="w-100" cols="30" rows="10">...</textarea>
                         </div>
                         <div class="col-xl-6">
                             <label></label>
@@ -174,7 +174,7 @@
                     <div class="row">
                         <div class="col-xl-6">
                             <label>Footer innehåll</label>
-                            <textarea oninput="mirrorText(this)" required name="footerContent" class="w-100" cols="30" rows="10">...</textarea>
+                            <textarea th:utext="${mailList.footerContent}" oninput="mirrorText(this)" required name="footerContent" class="w-100" cols="30" rows="10">...</textarea>
                         </div>
                         <div class="col-xl-6">
                             <label></label>
@@ -183,12 +183,40 @@
                     </div>
                     <!--This is to add a sequence placeholder-->
                     <div class="addSequenceDiv"></div>
+                    <div class="insertedSequence" th:each="sequence : ${sequenceList}">
+                        <hr class="mt-3 mb-3" style="border: none;height: 3px;background-color: #5e5e5e;">
+                        <label>Sekvens</label>
+                        <div class="row mb-3">
+                            <div class="col-xl-6">
+                                <input name="titleSequence[]" th:value="${sequence.mainContent}" oninput="mirrorTextSequence(this)" required class="w-100 form-control" type="text">
+                            </div>
+                            <div class="col-xl-6">
+                                <input readonly class="w-100 form-control" type="text">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-xl-6">
+                                <textarea th:utext="${sequence.mainContent}" oninput="mirrorTextSequence(this)" required name="sequenceContent[]" class="w-100" cols="30" rows="10">...</textarea>
+                            </div>
+                            <div class="col-xl-6">
+                                <div class="w-100">...</div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label>Sekvens startdatum (utan svar från första utskick)</label>
+                                <input th:value="${sequence.sequenceStartDate}" name="sequenceAfter[]" required class="form-control" type="date">
+                            </div>
+                            <div class="col-md-6 mb-3 d-flex align-items-end">
+                                <button class="btn btn-danger btn-sm mt-4" onclick="removeSequence(this)">Ta bort sekvens</button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="mb-3 d-flex flex-wrap">
                         <button class="btn btn-info btn-sm me-2" type="button" id="addSequence">Lägg till sekvens</button>
-                        <button class="btn btn-success btn-sm" type="submit">Ladda upp utskick</button>
+                        <button class="btn btn-success btn-sm" type="submit">Spara</button>
                     </div>
                 </div>
-                <textarea type="text" name="completeData" style="display: none" th:utext="${completeData}"></textarea>
             </form>
         </div>
     </div>
@@ -230,15 +258,30 @@
 <script src="/js/main.js"></script>
 
 <script>
-    //Set todays date
-    var date = new Date();
-    var day = String(date.getDate()).padStart(2, '0');
-    var month = String(date.getMonth() + 1).padStart(2, '0'); //January is 0!
-    var year = date.getFullYear();
+    document.addEventListener('DOMContentLoaded', (event) => {
+        const inputElements = document.querySelectorAll('input[name="title"]');
+        inputElements.forEach(mirrorText);
+    });
 
-    var today = year + '-' + month + '-' + day;
+    document.addEventListener('DOMContentLoaded', (event) => {
+        const inputElements = document.querySelectorAll('textarea[name="footerContent"]');
+        inputElements.forEach(mirrorText);
+    });
 
-    document.getElementById('dateInput').value = today;
+    document.addEventListener('DOMContentLoaded', (event) => {
+        const textareaElements = document.querySelectorAll('textarea[name="mainContent"]');
+        textareaElements.forEach(mirrorText);
+    });
+
+    document.addEventListener('DOMContentLoaded', (event) => {
+        const inputElements = document.querySelectorAll('input[name="titleSequence[]"]');
+        inputElements.forEach(mirrorTextSequence);
+    });
+
+    document.addEventListener('DOMContentLoaded', (event) => {
+        const textareaElements = document.querySelectorAll('textarea[name="sequenceContent[]"]');
+        textareaElements.forEach(mirrorTextSequence);
+    });
 </script>
 
 <script th:inline="javascript">
