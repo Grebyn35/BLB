@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+
+<html lang="sv" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>Dashboard</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Meta Tags -->
+    <!-- <meta name="description" content="">
+    <meta name="author" content=""> -->
+
+    <!-- Viewport -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Favicon and Touch Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
+    <link rel="manifest" href="/favicon/site.webmanifest">
+    <link rel="mask-icon" href="/favicon/safari-pinned-tab.svg" color="#6366f1">
+    <link rel="shortcut icon" href="/favicon/favicon.ico">
+    <meta name="msapplication-TileColor" content="#080032">
+    <meta name="msapplication-config" content="assets/favicon/browserconfig.xml">
+    <meta name="theme-color" content="#ffffff">
+
+    <!-- CSS -->
+    <link rel="stylesheet" media="screen" href="/vendor/boxicons/css/boxicons.min.css"/>
+    <link rel="stylesheet" media="screen" href="/style/theme.css">
+    <link rel="stylesheet" media="screen" href="/style/basic.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+
+  <body>
+  <div class="modal fade" id="settingsModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-body tab-content py-4">
+          <!-- Settings form -->
+          <form class="tab-pane fade show active" th:action="@{/user/settings/update}" method="post" autocomplete="off">
+            <div class="mb-3">
+              <label class="form-label" for="email">Epost</label>
+              <input name="email" id="email" th:value="${user.mailEmail}" required class="form-control" type="text">
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="alias">Alias</label>
+              <input name="alias" id="alias" th:value="${user.mailAlias}" required class="form-control" type="text">
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="password">Lösenord</label>
+              <input name="password" id="password" th:value="${user.mailPassword}" required class="form-control" type="password">
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="host">Host</label>
+              <input required name="host" id="host" th:value="${user.mailHost}" class="form-control" type="text" placeholder="mailcluster.loopia.se">
+            </div>
+            <div class="mb-3">
+              <label for="port" class="form-label">Port</label>
+              <input required name="port" id="port" type="text" th:value="${user.mailPort}" class="form-control" placeholder="587">
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-light border btn-sm" data-bs-dismiss="modal">Avbryt</button>
+              <button type="submit" class="btn btn-primary btn-sm">
+                Spara
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="uploadModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-body tab-content py-4">
+          <!-- Settings form -->
+          <form class="tab-pane fade show active" th:action="@{/user/upload-list}" enctype="multipart/form-data" method="post" autocomplete="off">
+            <div class="mb-3">
+              <label class="form-label" for="file">Fil</label>
+              <input name="file" required id="file" class="form-control" type="file">
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="name">Namn på utskick</label>
+              <input name="name" required id="name" class="form-control" type="text">
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="separator">Separator</label>
+              <input name="separator" id="separator" value="," required class="form-control" type="text" placeholder="tex. ',' ':' etc utan citattecken">
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-light border btn-sm" data-bs-dismiss="modal">Avbryt</button>
+              <button type="submit" class="btn btn-primary btn-sm">
+                Nästa
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  <header class="navbar navbar-expand-lg bg-light shadow-sm">
+    <div class="container">
+      <a href="/user/dashboard" class="navbar-brand">
+        .Balumbo
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse1" aria-expanded="false">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <nav id="navbarCollapse1" class="collapse navbar-collapse">
+        <hr class="d-lg-none mt-3 mb-2">
+        <ul class="navbar-nav me-auto">
+          <li class="nav-item dropdown">
+            <a class="nav-link d-flex align-items-center" id="dropdownBacktesting" data-bs-toggle="dropdown"
+               aria-expanded="false" style="cursor: pointer;">Utskick</a>
+            <ul class="dropdown-menu" aria-labelledby="dropdownBacktesting">
+              <li><a class="dropdown-item" href="/user/backtesting/logs" style="cursor: pointer;">Köade utskick</a></li>
+              <li><a class="dropdown-item" href="/user/backtesting/logs" style="cursor: pointer;">Färdiga utskick</a></li>
+              <li><a class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#uploadModal">Nytt utskick</a></li>
+            </ul>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link d-flex align-items-center" id="dropdownSettings" data-bs-toggle="dropdown"
+               aria-expanded="false" style="cursor: pointer;" href="#">Inställningar</a>
+            <ul class="dropdown-menu" aria-labelledby="dropdownSettings">
+              <li><a class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#settingsModal" style="cursor: pointer;">SMTP</a></li>
+              <li><a class="dropdown-item" href=/logout>logga ut</a></li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+  <div class="container">
+    <div class="d-flex">
+      <div class="w-100">
+        <div class="px-lg-4 px-sm-3 px-2 py-lg-5 py-sm-4 py-5">
+          <div class="row">
+            <div class="col-xxl-6">
+              <div class="mb-4 gap-4">
+                <div class="bg-white rounded shadow border w-100">
+                  <div class="bg-secondary p-4">
+                    <a href="/user/scalp/trades/open" class="d-flex align-items-center text-decoration-none text-body">
+                      <i class="bx bx-group fs-4 me-2"></i>
+                      <h2 class="text-center h5 mb-0">Utskick</h2>
+                    </a>
+                  </div>
+                  <div class="d-xl-flex justify-content-between p-3 gap-4">
+                    <div class="p-3 me-3">
+                      <p class="text-muted mb-0">Alla utskick</p>
+                      <a href="/user/scalp/trades/open" class="display-6 text-body text-decoration-none" th:text="${mailListsFinished.size()} + ${mailListsNotFinished.size()}">0</a>
+                    </div>
+                    <div class="p-3 bg-light-green">
+                      <p class="text-muted mb-0">Köade utskick</p>
+                      <a href="/user/scalp/trades/open" class="display-6 text-success text-decoration-none" th:text="${mailListsNotFinished.size()}">0</a>
+                    </div>
+                    <div class="p-3 bg-light-card">
+                      <p class="text-muted mb-0">Färdiga utskick</p>
+                      <a href="/user/scalp/trades/closed" class="display-6 text-muted text-decoration-none" th:text="${mailListsFinished.size()}">0</a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="mb-4 gap-4">
+                <div class="bg-white rounded shadow border w-100">
+                  <div class="bg-secondary p-4">
+                    <a type="button" data-bs-toggle="modal" data-bs-target="#settingsModal" class="d-flex align-items-center text-decoration-none text-body">
+                      <i class="bx bx-list-ul fs-4 me-2"></i>
+                      <h2 class="text-center h5 mb-0">Epost uppgifter</h2>
+                    </a>
+                  </div>
+                  <div class="d-xl-flex justify-content-between p-3 gap-4">
+                    <div class="p-3 me-3">
+                      <p class="text-muted mb-0">Host</p>
+                      <p class="display-6 text-body text-decoration-none" style="font-size: 0.875rem" th:text="${user.mailHost}">0</p>
+                    </div>
+                    <div class="p-3 me-3">
+                      <p class="text-muted mb-0">Användarnamn</p>
+                      <p class="display-6 text-success text-decoration-none" style="font-size: 0.875rem" th:text="${user.mailEmail}">0</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-xxl-6 order-first order-xxl-last">
+              <div class="mb-4 gap-4">
+                <div class="bg-white rounded shadow border w-100">
+                  <div class="bg-secondary p-4 d-flex justify-content-between align-items-center">
+                    <a href="/user/scalp/trades/open" class="d-flex align-items-center text-decoration-none text-body">
+                      <i class="bx bx-envelope fs-4 me-2"></i>
+                      <h2 class="h5 mb-0">Köade utskick</h2>
+                      <span class="badge rounded-pill bg-primary ms-2" th:text="${mailListsNotFinished.size()}">0</span>
+                    </a>
+                  </div>
+
+                  <div style="max-height: 280px; overflow-y: scroll;">
+                    <div th:if="${mailListsNotFinished.size()==0}" class="p-4 center text-center">
+                      <div class="center">
+                        <span class="text-muted fs-6">Inga köade utskick...</span>
+                      </div>
+                    </div>
+                    <table th:if="${mailListsNotFinished.size()>0}" class="table" th:each="mailListFinished : ${mailListsNotFinished}">
+                      <tr class="d-flex justify-content-between align-items-center border-bottom hover-bg">
+                        <td class="border-0">
+                          <span class="badge bg-secondary border shadow-sm" th:text="${mailListFinished.fileName}"></span>
+                        </td>
+                        <td class="border-0" th:if="${mailListFinished.ongoing}">
+                          <i class="bx bxs-check-circle fs-lg text-success me-1"></i>
+                        </td>
+                        <td class="border-0" th:if="${!mailListFinished.ongoing}">
+                          <i class="bx bxs-x-circle fs-lg text-warning me-1"></i>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mb-4 gap-4">
+                <div class="bg-white rounded shadow border w-100">
+                  <div class="bg-secondary p-4 d-flex justify-content-between align-items-center">
+                    <a href="/user/scalp/trades/open" class="d-flex align-items-center text-decoration-none text-body">
+                      <i class="bx bx-envelope fs-4 me-2"></i>
+                      <h2 class="h5 mb-0">Färdiga utskick</h2>
+                      <span class="badge rounded-pill bg-primary ms-2" th:text="${mailListsFinished.size()}">0</span>
+                    </a>
+                  </div>
+
+                  <div style="max-height: 280px; overflow-y: scroll;">
+                    <div class="p-4 center text-center" th:if="${mailListsFinished.size()==0}">
+                      <div class="center">
+                        <span class="text-muted fs-6">Inga färdiga utskick...</span>
+                      </div>
+                    </div>
+                    <table th:if="${mailListsFinished.size()>0}" class="table" th:each="mailListFinished : ${mailListsFinished}">
+                      <tr class="d-flex justify-content-between align-items-center border-bottom hover-bg">
+                        <td class="border-0">
+                          <span class="badge bg-secondary border shadow-sm" th:text="${mailListFinished.fileName}"></span>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+  <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
+  <!-- Scripts -->
+  <script src="/vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/theme.min.js"></script>
+  <script src="/js/main.js"></script>
+  <script>
+    document.getElementById('file').addEventListener('change', function(e) {
+      var fileNameByInput = e.target.files[0].name;
+      var fileName = document.getElementById("name").value
+      if(fileName.length==0){
+        document.getElementById("name").value = fileNameByInput
+      }
+    });
+  </script>
+  <script th:if="${uploaded==true}">
+    alert("Lista uppladdad")
+  </script>
+  <script th:if="${hasError==false}">
+    alert("settings updated")
+  </script>
+  </body>
+</html>
