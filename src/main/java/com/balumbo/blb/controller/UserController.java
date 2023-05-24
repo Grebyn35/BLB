@@ -21,6 +21,7 @@ import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
 import com.opencsv.exceptions.CsvException;
 import com.opencsv.exceptions.CsvValidationException;
+import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,6 +35,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import javax.annotation.PostConstruct;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.security.auth.login.LoginException;
@@ -62,17 +64,28 @@ public class UserController {
 
     @Autowired
     UserRepository userRepository;
+    private static UserRepository staticUserRepository;
 
     @Autowired
     MailListRepository mailListRepository;
+    private static MailListRepository staticMailListRepository;
 
     @Autowired
     MailRowRepository mailRowRepository;
+    private static MailRowRepository staticMailRowRepository;
 
     @Autowired
     SequenceListRepository sequenceListRepository;
+    private static SequenceListRepository staticSequenceListRepository;
 
 
+    @PostConstruct
+    public void init() throws LoginException {
+        staticUserRepository = userRepository;
+        staticMailListRepository = mailListRepository;
+        staticMailRowRepository = mailRowRepository;
+        staticSequenceListRepository = sequenceListRepository;
+    }
     @GetMapping("/")
     public String home(){
         return "redirect:/user/dashboard";
@@ -119,8 +132,8 @@ public class UserController {
     }
     public void addDashboardAttributes(Model model, User user){
         Pageable pageable = PageRequest.of(0, 5);
-        Page<MailList> mailListsNotFinished = mailListRepository.findAllByFinishedAndUserIdOrderByDispatchDate(false, user.getId(), pageable);
-        Page<MailList> mailListsFinished = mailListRepository.findAllByFinishedAndUserIdOrderByDispatchDate(true, user.getId(), pageable);
+        Page<MailList> mailListsNotFinished = mailListRepository.findAllByFinishedAndUserIdAndFinishedUploadingIsTrueOrderByDispatchDate(false, user.getId(), pageable);
+        Page<MailList> mailListsFinished = mailListRepository.findAllByFinishedAndUserIdAndFinishedUploadingIsTrueOrderByDispatchDate(true, user.getId(), pageable);
         model.addAttribute("mailListsFinished", mailListsFinished);
         model.addAttribute("mailListsFinishedTotal", mailListsFinished.getTotalElements());
 
@@ -138,7 +151,7 @@ public class UserController {
         User user = returnCurrentUser();
         model.addAttribute("user", user);
         Pageable pageable = PageRequest.of(page, 15);
-        Page<MailList> queuedLists = mailListRepository.findAllByFinishedAndUserIdOrderByDispatchDate(false, user.getId(), pageable);
+        Page<MailList> queuedLists = mailListRepository.findAllByFinishedAndUserIdAndFinishedUploadingIsTrueOrderByDispatchDate(false, user.getId(), pageable);
         model.addAttribute("queuedLists", queuedLists);
         return "queued-list";
     }
@@ -147,7 +160,7 @@ public class UserController {
         User user = returnCurrentUser();
         model.addAttribute("user", user);
         Pageable pageable = PageRequest.of(page, 15);
-        Page<MailList> completedLists = mailListRepository.findAllByFinishedAndUserIdOrderByDispatchDate(true, user.getId(), pageable);
+        Page<MailList> completedLists = mailListRepository.findAllByFinishedAndUserIdAndFinishedUploadingIsTrueOrderByDispatchDate(true, user.getId(), pageable);
         model.addAttribute("completedLists", completedLists);
         return "finished-list";
     }
@@ -267,8 +280,8 @@ public class UserController {
         byte[] bytes = file.getBytes();
         String completeData = new String(bytes);
         //Parse the csv
-        ArrayList<HeaderValues> headerValues = parseDataRowToHeader(parseCSVRows(completeData, 0, request.getParameter("separator")));
-        ArrayList<DataRow> firstRow = parseCSVRows(completeData, 1, request.getParameter("separator"));
+        ArrayList<HeaderValues> headerValues = parseDataRowToHeader(parseCSVRows(completeData, 0, request.getParameter("separator"), true));
+        ArrayList<DataRow> firstRow = parseCSVRows(completeData, 1, request.getParameter("separator"), false);
 
         model.addAttribute("headers", headerValues);
         model.addAttribute("headersJson", parseHeadersToJson(headerValues));
@@ -287,9 +300,14 @@ public class UserController {
         String title = request.getParameter("title");
         String completeData = request.getParameter("completeData");
 
+        //Lists to split the data
         ArrayList<String> sequenceContentList = new ArrayList<>();
         ArrayList<String> sequenceAfterList = new ArrayList<>();
         ArrayList<String> titleSequenceList = new ArrayList<>();
+
+        //List of actual objects
+        ArrayList<SequenceList> sequenceLists = new ArrayList<>();
+        MailList mailList = new MailList();
 
         String[] sequenceContent = request.getParameterValues("sequenceContent[]");
         String[] sequenceAfter = request.getParameterValues("sequenceAfter[]");
@@ -312,7 +330,6 @@ public class UserController {
         }
         User user = returnCurrentUser();
         //MailList
-        MailList mailList = new MailList();
         mailList.setFileName(fileName);
         mailList.setFooterContent(footerContent);
         mailList.setDispatchDate(Date.valueOf(dispatchDate));
@@ -321,30 +338,6 @@ public class UserController {
         mailList.setUserId(user.getId());
         MailList savedMailList = mailListRepository.save(mailList);
 
-
-        ArrayList<MailRow> rows = new ArrayList<>();
-        //MailRow
-        CSVReader reader = new CSVReaderBuilder(
-                new StringReader(completeData))
-                .withSkipLines(0)
-                .build();
-
-        List<String[]> r = reader.readAll();
-        for(int i = 0; i<r.size();i++){
-            String csvLine = String.join(",", r.get(i));
-            MailRow mailRow = new MailRow();
-            mailRow.setDataRow(csvLine);
-            mailRow.setUserId(user.getId());
-            mailRow.setMailListId(savedMailList.getId());
-            if(i==0){
-                mailRow.setHeader(true);
-            }
-            rows.add(mailRow);
-        }
-        mailRowRepository.saveAll(rows);
-
-
-        ArrayList<SequenceList> sequenceLists = new ArrayList<>();
         //SequenceList
         for(int i = 0; i<sequenceContentList.size();i++){
             SequenceList sequenceList = new SequenceList();
@@ -356,8 +349,41 @@ public class UserController {
             sequenceLists.add(sequenceList);
         }
         sequenceListRepository.saveAll(sequenceLists);
+
+        //Save the rows in a new thread so the user does not have to wait
+        new Thread(asyncSaveRows(completeData, user, savedMailList)).start();
+
         redirectAttributes.addFlashAttribute("uploaded", true);
         return "redirect:/user/dashboard";
+    }
+    public Runnable asyncSaveRows(String completeData, User user, MailList mailList){
+        return new Runnable() {
+            @SneakyThrows
+            public void run() {
+                ArrayList<MailRow> rows = new ArrayList<>();
+                //MailRow
+                CSVReader reader = new CSVReaderBuilder(
+                        new StringReader(completeData))
+                        .withSkipLines(0)
+                        .build();
+
+                List<String[]> r = reader.readAll();
+                for(int i = 0; i<r.size();i++){
+                    String csvLine = String.join(",", r.get(i));
+                    MailRow mailRow = new MailRow();
+                    mailRow.setDataRow(csvLine);
+                    mailRow.setUserId(user.getId());
+                    mailRow.setMailListId(mailList.getId());
+                    if(i==0){
+                        mailRow.setHeader(true);
+                    }
+                    rows.add(mailRow);
+                }
+                staticMailRowRepository.saveAll(rows);
+                mailList.setFinishedUploading(true);
+                staticMailListRepository.save(mailList);
+            }
+        };
     }
     @PostMapping("/user/edit-list/{id}")
     public String editListComplete(Model model, HttpServletRequest request, @PathVariable long id) throws CsvException, IOException {
@@ -445,7 +471,7 @@ public class UserController {
                 .collect(Collectors.toList());
         return jsonHeaders;
     }
-    public ArrayList<DataRow> parseCSVRows(String completeData, int skipLines, String separator) throws IOException, CsvException {
+    public ArrayList<DataRow> parseCSVRows(String completeData, int skipLines, String separator, boolean isHeader) throws IOException, CsvException {
         CSVParser csvParser = new CSVParserBuilder().withSeparator(separator.charAt(0)).build(); // custom separator
         CSVReader reader = new CSVReaderBuilder(
                 new StringReader(completeData))
@@ -456,7 +482,12 @@ public class UserController {
         ArrayList<DataRow> dataRowsList = new ArrayList<>();
         for(int i = 0; i<firstLine.length;i++){
             DataRow dataRow = new DataRow();
-            dataRow.setName(firstLine[i].replaceAll(" ", ""));
+            if(isHeader){
+                dataRow.setName(firstLine[i].replaceAll(" ", ""));
+            }
+            else{
+                dataRow.setName(firstLine[i]);
+            }
             dataRow.setIndex(i);
             dataRowsList.add(dataRow);
         }

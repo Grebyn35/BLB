@@ -26,5 +26,6 @@ public class MailList implements Serializable {
     private String title;
     private boolean finished;
     private boolean ongoing;
+    private boolean finishedUploading;
     private long userId;
 }

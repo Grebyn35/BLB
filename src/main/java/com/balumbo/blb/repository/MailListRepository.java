@@ -15,5 +15,5 @@ public interface MailListRepository extends CrudRepository<MailList,Long> {
     MailList findById(long id);
     ArrayList<MailList> findAllByUserId(long userId);
     ArrayList<MailList> findAllByFinishedAndUserId(boolean finished, long userId);
-    Page<MailList> findAllByFinishedAndUserIdOrderByDispatchDate(boolean finished, long userId, Pageable pageable);
+    Page<MailList> findAllByFinishedAndUserIdAndFinishedUploadingIsTrueOrderByDispatchDate(boolean finished, long userId, Pageable pageable);
 }
