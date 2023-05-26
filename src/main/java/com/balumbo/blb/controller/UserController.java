@@ -149,8 +149,13 @@ public class UserController {
         User user = returnCurrentUser();
         MailList mailList = mailListRepository.findById(id);
         MailRow mailRow = mailRowRepository.findFirstByMailListIdAndIsHeader(mailList.getId(), false);
-        sendTestEmailToSelf(mailRow, user, mailList, request);
-        redirectAttributes.addFlashAttribute("sentTest", true);
+        if(emailValidation(user)){
+            sendTestEmailToSelf(mailRow, user, mailList, request);
+            redirectAttributes.addFlashAttribute("sentTest", true);
+        }
+        else{
+            redirectAttributes.addFlashAttribute("sentTest", false);
+        }
         return "redirect:/user/koade-utskick?page=0";
     }
     @GetMapping("/user/test-mejl-fardig/{id}")
@@ -158,8 +163,13 @@ public class UserController {
         User user = returnCurrentUser();
         MailList mailList = mailListRepository.findById(id);
         MailRow mailRow = mailRowRepository.findFirstByMailListIdAndIsHeader(mailList.getId(), false);
-        sendTestEmailToSelf(mailRow, user, mailList, request);
-        redirectAttributes.addFlashAttribute("sentTest", true);
+        if(emailValidation(user)){
+            sendTestEmailToSelf(mailRow, user, mailList, request);
+            redirectAttributes.addFlashAttribute("sentTest", true);
+        }
+        else{
+            redirectAttributes.addFlashAttribute("sentTest", false);
+        }
         return "redirect:/user/fardiga-utskick?page=0";
     }
     public void addDashboardAttributes(Model model, User user){
@@ -367,6 +377,7 @@ public class UserController {
         user.setMailPassword(password);
         user.setMailHost(host);
         user.setMailPort(port);
+        user.setError(false);
         if(emailValidation(user)){
             userRepository.save(user);
             redirectAttributes.addFlashAttribute("hasError", false);
@@ -490,7 +501,6 @@ public class UserController {
                         Pattern pattern = Pattern.compile(emailRegex);
                         ArrayList<DataRow> dataRowEmail = parseCSVRows(csvLine, 0, mailList.getSeparatorValue(), false);
                         for(int c = 0; c<dataRowEmail.size();c++){
-                            System.out.println(dataRowEmail.get(c).getName());
                             if(pattern.matcher(dataRowEmail.get(c).getName()).matches()){
                                 mailRow.setEmail(dataRowEmail.get(c).getName());
                                 break;
@@ -550,7 +560,6 @@ public class UserController {
         mailListRepository.save(mailList);
 
         ArrayList<SequenceList> oldSequenceLists = sequenceListRepository.findByMailListId(mailList.getId());
-        System.out.println("deleting: " + oldSequenceLists.size() + " items");
         sequenceListRepository.deleteAll(oldSequenceLists);
 
         ArrayList<SequenceList> newSequenceLists = new ArrayList<>();

@@ -35,7 +35,10 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -70,11 +73,19 @@ public class EmailService {
         mailListRepository.saveAll(mailLists);
     }
 
-    @Scheduled(fixedRate = 5000) // Check for changes in the mailList every 5 seconds
+    @Scheduled(fixedRate = 20000) // Check for changes in the mailList every 5 seconds
     public void sendEmails() {
         ArrayList<MailList> mailLists = mailListRepository.findAllByFinishedAndDispatchDateEqualOrAfterAndOngoing(false, false, java.sql.Date.valueOf(LocalDate.now()));
         for(int i = 0; i<mailLists.size();i++){
-            applicationEventPublisher.publishEvent(new HandleMailListEvent(mailLists.get(i)));
+            User user = userRepository.findById(mailLists.get(i).getUserId());
+            if(!user.isError()){
+                if(isWithinWorkingHours()){
+                    applicationEventPublisher.publishEvent(new HandleMailListEvent(mailLists.get(i)));
+                }
+            }
+            else{
+                System.out.println("List cannot sent, user " + user.getEmail() + " has errors");
+            }
         }
     }
 
@@ -101,30 +112,39 @@ public class EmailService {
         }
         mailListRepository.save(mailList);
         for(int i = 0; i<mailRows.size();i++){
+            user = userRepository.findById(user.getId()).get();
             if(emailValidation(user)) {
-                try {
-                    mailList = mailListRepository.findById(mailList.getId()).get();
-                    sendEmail(mailRows.get(i), user, mailList);
-                    mailRows.get(i).setSent(true);
-                    mailRowRepository.save(mailRows.get(i));
-                    Thread.sleep(mailList.getIntervalPeriod());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    mailRows.get(i).setError(true);
-                    mailRowRepository.save(mailRows.get(i));
+                if(isWithinWorkingHours()){
+                    try {
+                        mailList = mailListRepository.findById(mailList.getId()).get();
+                        sendEmail(mailRows.get(i), user, mailList);
+                        mailRows.get(i).setSent(true);
+                        mailRowRepository.save(mailRows.get(i));
+                        Thread.sleep(mailList.getIntervalPeriod());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        mailRows.get(i).setError(true);
+                        mailRowRepository.save(mailRows.get(i));
+                    }
+                }
+                else{
+                    return;
                 }
             }
             else{
                 sendErrorEmail(user);
-                break;
+                return;
             }
         }
+        sendFinishedList(user, mailList);
         System.out.println("Mail list complete. Setting finished.");
         mailList.setOngoing(false);
         mailList.setFinished(true);
         mailListRepository.save(mailList);
     }
     public void sendErrorEmail(User user){
+        user.setError(true);
+        userRepository.save(user);
         try{
             // Recipient's email ID needs to be mentioned.
             String to = user.getEmail();
@@ -176,6 +196,72 @@ public class EmailService {
         }catch (Exception e){
             e.printStackTrace();
         }
+    }
+    public void sendFinishedList(User user, MailList mailList){
+        try{
+            // Recipient's email ID needs to be mentioned.
+            String to = user.getEmail();
+
+            // Sender's email ID needs to be mentioned
+            String from = user.getMailEmail();
+            final String username = user.getMailEmail();
+            final String password = user.getMailPassword();
+
+            // Assuming you are sending email through relay.jangosmtp.net
+            String host = user.getMailHost();
+
+            Properties props = new Properties();
+            props.put("mail.smtp.auth", "true");
+            props.put("mail.smtp.starttls.enable", "true");
+            props.put("mail.smtp.host", host);
+            props.put("mail.smtp.port", user.getMailPort());
+
+            // Get the Session object.
+            Session session = Session.getInstance(props,
+                    new javax.mail.Authenticator() {
+                        protected PasswordAuthentication getPasswordAuthentication() {
+                            return new PasswordAuthentication(username, password);
+                        }
+                    });
+            // Create a default MimeMessage object.
+            Message message = new MimeMessage(session);
+            // Set From: header field of the header.
+            message.setFrom(new InternetAddress(from, user.getMailAlias()));
+            // Set To: header field of the header.
+            message.setRecipients(Message.RecipientType.TO,
+                    InternetAddress.parse(to));
+
+            //Replace the title with variables
+            Pageable pageableHeader = PageRequest.of(0, 1);
+
+            String replacedTitle = "Ditt utskick är klart.";
+
+            // Set Subject: header field
+            message.setSubject(replacedTitle);
+
+            //Replace the content with variables
+            String replacedContent = "Utskicket '" + mailList.getFileName() + "' har slutförts.";
+
+            // Now set the actual message
+            message.setContent(replacedContent, "text/html; charset=UTF-8");
+            // Send message
+            Transport.send(message);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+    public boolean isWithinWorkingHours() {
+        ZonedDateTime now = ZonedDateTime.now();
+        DayOfWeek day = now.getDayOfWeek();
+        LocalTime time = now.toLocalTime();
+
+        if (day.equals(DayOfWeek.SATURDAY) || day.equals(DayOfWeek.SUNDAY)) {
+            return false;  // It's a weekend
+        }
+
+        LocalTime startOfWorkDay = LocalTime.of(8, 0);
+        LocalTime endOfWorkDay = LocalTime.of(17, 0);
+        return !time.isBefore(startOfWorkDay) && !time.isAfter(endOfWorkDay);
     }
     public boolean emailValidation(User user) {
         final String username = user.getMailEmail();

@@ -286,7 +286,10 @@
     alert("Lista uppladdad")
 </script>
 <script th:if="${sentTest==true}">
-    alert("Ett test mejl har ksickats till inloggad epostadress")
+    alert("Ett test mejl har sickats till inloggad epostadress")
+</script>
+<script th:if="${sentTest==false}">
+    alert("Det gick inte att skicka ett test mejl. Antigen är eposten felaktig eller så är dina epost uppgifter fel.")
 </script>
 <script th:if="${hasError==false}">
     alert("settings updated")
