@@ -55,8 +55,6 @@ import java.util.stream.Collectors;
 @Controller
 public class UserController {
 
-    static String urlPath = "http://localhost:8080";
-
     @Autowired
     private UserService servDao;
 
@@ -239,18 +237,18 @@ public class UserController {
             }
         }
         if(hasHeader){
-            String headerRow = mailRows.get(0).getDataRow() + "," + "isOpened" + "," + "timeOpened" + "," + "timesOpened";
+            String headerRow = mailRows.get(0).getDataRow() + "," + "Öppnad" + "," + "TidÖppnad" + "," + "gångerÖppnade" + "," + "felVidUtskick";
             outputStream.write(headerRow.getBytes());
             outputStream.write("\n".getBytes());
             for (int i = 1; i < mailRows.size(); i++) {
-                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened();
+                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened() + "," + mailRows.get(i).isError();
                 outputStream.write(row.getBytes());
                 outputStream.write("\n".getBytes());
             }
         }
         else{
             for (int i = 0; i < mailRows.size(); i++) {
-                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened();
+                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened() + "," + mailRows.get(i).isError();
                 outputStream.write(row.getBytes());
                 outputStream.write("\n".getBytes());
             }
@@ -278,18 +276,18 @@ public class UserController {
             }
         }
         if(hasHeader){
-            String headerRow = mailRows.get(0).getDataRow() + "," + "isOpened" + "," + "timeOpened" + "," + "timesOpened";
+            String headerRow = mailRows.get(0).getDataRow() + "," + "Öppnad" + "," + "TidÖppnad" + "," + "gångerÖppnade" + "," + "felVidUtskick";
             outputStream.write(headerRow.getBytes());
             outputStream.write("\n".getBytes());
             for (int i = 1; i < mailRows.size(); i++) {
-                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened();
+                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened() + "," + mailRows.get(i).isError();
                 outputStream.write(row.getBytes());
                 outputStream.write("\n".getBytes());
             }
         }
         else{
             for (int i = 0; i < mailRows.size(); i++) {
-                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened();
+                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened() + "," + mailRows.get(i).isError();
                 outputStream.write(row.getBytes());
                 outputStream.write("\n".getBytes());
             }
@@ -346,6 +344,10 @@ public class UserController {
         mailList.setDispatchDate(Date.valueOf(date));
         ArrayList<MailRow> mailRows = mailRowRepository.findByMailListId(mailList.getId());
         for(int i = 0; i<mailRows.size();i++){
+            mailRows.get(i).setOpened(false);
+            mailRows.get(i).setTimeOpened(null);
+            mailRows.get(i).setTimesOpened(0);
+            mailRows.get(i).setError(false);
             mailRows.get(i).setSent(false);
         }
         mailRowRepository.saveAll(mailRows);
@@ -689,56 +691,37 @@ public class UserController {
         System.out.println("Sent message successfully for user " + user.getEmail() + ". Interval=" + mailList.getIntervalPeriod() + "ms");
     }
     public boolean emailValidation(User user) {
-        try{
-            // Recipient's email ID needs to be mentioned.
-            String to = user.getEmail();
+        // Recipient's email ID needs to be mentioned.
+        String to = user.getEmail();
 
-            // Sender's email ID needs to be mentioned
-            String from = user.getMailEmail();
-            final String username = user.getMailEmail();
-            final String password = user.getMailPassword();
+        // Sender's email ID needs to be mentioned
+        String from = user.getMailEmail();
+        final String username = user.getMailEmail();
+        final String password = user.getMailPassword();
 
-            // Assuming you are sending email through relay.jangosmtp.net
-            String host = user.getMailHost();
+        // Assuming you are sending email through relay.jangosmtp.net
+        String host = user.getMailHost();
 
-            Properties props = new Properties();
-            props.put("mail.smtp.auth", "true");
-            props.put("mail.smtp.starttls.enable", "true");
-            props.put("mail.smtp.host", host);
-            props.put("mail.smtp.port", user.getMailPort());
+        Properties props = new Properties();
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", host);
+        props.put("mail.smtp.port", user.getMailPort());
 
-            // Get the Session object.
-            Session session = Session.getInstance(props,
-                    new javax.mail.Authenticator() {
-                        protected PasswordAuthentication getPasswordAuthentication() {
-                            return new PasswordAuthentication(username, password);
-                        }
-                    });
-            // Create a default MimeMessage object.
-            Message message = new MimeMessage(session);
-            // Set From: header field of the header.
-            message.setFrom(new InternetAddress(from, user.getMailAlias()));
-            // Set To: header field of the header.
-            message.setRecipients(Message.RecipientType.TO,
-                    InternetAddress.parse(to));
-
-            //Replace the title with variables
-            Pageable pageableHeader = PageRequest.of(0, 1);
-
-            String replacedTitle = "Test verifiering av inställningar";
-
-            // Set Subject: header field
-            message.setSubject(replacedTitle);
-
-            //Replace the content with variables
-            String replacedContent = "Uppdateringen av dina inställningar lyckades.";
-
-            // Now set the actual message
-            message.setContent(replacedContent, "text/html; charset=UTF-8");
-            // Send message
-            Transport.send(message);
+        // Get the Session object.
+        Session session = Session.getInstance(props,
+                new javax.mail.Authenticator() {
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(username, password);
+                    }
+                });
+        try {
+            Transport transport = session.getTransport("smtp");
+            transport.connect();
+            transport.close();
             return true;
-        }catch (Exception e){
+        } catch (MessagingException e) {
+            e.printStackTrace();
             return false;
         }
     }

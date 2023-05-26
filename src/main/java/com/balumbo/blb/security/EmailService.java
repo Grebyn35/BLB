@@ -94,7 +94,6 @@ public class EmailService {
         } else {
             mailRows = mailRowRepository.findByMailListIdAndSentAndErrorAndEmailNotIn(mailList.getId(), false, false, blackListEmails);
         }
-        System.out.println(mailRows);
         mailList.setOngoing(true);
         if(mailRows.size()==0){
             mailList.setOngoing(false);
@@ -102,22 +101,111 @@ public class EmailService {
         }
         mailListRepository.save(mailList);
         for(int i = 0; i<mailRows.size();i++){
-            try{
-                mailList = mailListRepository.findById(mailList.getId()).get();
-                sendEmail(mailRows.get(i), user, mailList);
-                mailRows.get(i).setSent(true);
-                mailRowRepository.save(mailRows.get(i));
-                Thread.sleep(mailList.getIntervalPeriod());
-            }catch (Exception e){
-                e.printStackTrace();
-                mailRows.get(i).setError(true);
-                mailRowRepository.save(mailRows.get(i));
+            if(emailValidation(user)) {
+                try {
+                    mailList = mailListRepository.findById(mailList.getId()).get();
+                    sendEmail(mailRows.get(i), user, mailList);
+                    mailRows.get(i).setSent(true);
+                    mailRowRepository.save(mailRows.get(i));
+                    Thread.sleep(mailList.getIntervalPeriod());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    mailRows.get(i).setError(true);
+                    mailRowRepository.save(mailRows.get(i));
+                }
+            }
+            else{
+                sendErrorEmail(user);
+                break;
             }
         }
         System.out.println("Mail list complete. Setting finished.");
         mailList.setOngoing(false);
         mailList.setFinished(true);
         mailListRepository.save(mailList);
+    }
+    public void sendErrorEmail(User user){
+        try{
+            // Recipient's email ID needs to be mentioned.
+            String to = user.getEmail();
+
+            // Sender's email ID needs to be mentioned
+            String from = "jesper@ensotech.io";
+            final String username = user.getMailEmail();
+            final String password = user.getMailPassword();
+
+            // Assuming you are sending email through relay.jangosmtp.net
+            String host = user.getMailHost();
+
+            Properties props = new Properties();
+            props.put("mail.smtp.auth", "true");
+            props.put("mail.smtp.starttls.enable", "true");
+            props.put("mail.smtp.host", "mailcluster.loopia.se");
+            props.put("mail.smtp.port", "587");
+
+            // Get the Session object.
+            Session session = Session.getInstance(props,
+                    new javax.mail.Authenticator() {
+                        protected PasswordAuthentication getPasswordAuthentication() {
+                            return new PasswordAuthentication("jesper@ensotech.io", "!Jesper1337");
+                        }
+                    });
+            // Create a default MimeMessage object.
+            Message message = new MimeMessage(session);
+            // Set From: header field of the header.
+            message.setFrom(new InternetAddress(from, user.getMailAlias()));
+            // Set To: header field of the header.
+            message.setRecipients(Message.RecipientType.TO,
+                    InternetAddress.parse(to));
+
+            //Replace the title with variables
+            Pageable pageableHeader = PageRequest.of(0, 1);
+
+            String replacedTitle = "[VIKTIGT BALUMBO] Epost iställningar felaktiga";
+
+            // Set Subject: header field
+            message.setSubject(replacedTitle);
+
+            //Replace the content with variables
+            String replacedContent = "Epost uppgifterna måste uppdateras i inställningar";
+
+            // Now set the actual message
+            message.setContent(replacedContent, "text/html; charset=UTF-8");
+            // Send message
+            Transport.send(message);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+    public boolean emailValidation(User user) {
+        final String username = user.getMailEmail();
+        final String password = user.getMailPassword();
+
+        // Assuming you are sending email through relay.jangosmtp.net
+        String host = user.getMailHost();
+
+        Properties props = new Properties();
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", host);
+        props.put("mail.smtp.port", user.getMailPort());
+
+        // Get the Session object.
+        Session session = Session.getInstance(props,
+                new javax.mail.Authenticator() {
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(username, password);
+                    }
+                });
+        try {
+            Transport transport = session.getTransport("smtp");
+            transport.connect();
+            transport.close();
+            return true;
+        } catch (MessagingException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
     public void sendEmail(MailRow mailRow, User user, MailList mailList) throws MessagingException, IOException, CsvException {
         // Recipient's email ID needs to be mentioned.
@@ -188,7 +276,7 @@ public class EmailService {
         // Now set the actual message
         message.setContent(replacedContent + "<br><br>" + replacedFooter + " " +  openedLink, "text/html; charset=UTF-8");
         // Send message
-        //Transport.send(message);
+        Transport.send(message);
         System.out.println("Sent message successfully for user " + user.getEmail() + ". Interval=" + mailList.getIntervalPeriod() + "ms");
     }
     public ArrayList<DataRow> parseCSVRows(String completeData, int skipLines, String separator, boolean isHeader) throws IOException, CsvException {
