@@ -106,10 +106,6 @@
                         <label for="port" class="form-label">Port</label>
                         <input required name="port" id="port" type="text" th:value="${user.mailPort}" class="form-control" placeholder="587">
                     </div>
-                    <div class="mb-3">
-                        <label for="port" class="form-label">Interval (sekunder)</label>
-                        <input required name="interval" id="interval" type="number" th:value="${user.intervalPeriod}" class="form-control" placeholder="587">
-                    </div>
                     <div class="d-flex justify-content-end gap-2">
                         <button type="button" class="btn btn-light border btn-sm" data-bs-dismiss="modal">Avbryt</button>
                         <button type="submit" class="btn btn-primary btn-sm">
@@ -280,6 +276,9 @@
 </script>
 <script th:if="${uploaded==true}">
     alert("Lista uppladdad")
+</script>
+<script th:if="${sentTest==true}">
+    alert("Ett test mejl har ksickats till inloggad epostadress")
 </script>
 <script th:if="${hasError==false}">
     alert("settings updated")

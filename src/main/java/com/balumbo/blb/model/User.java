@@ -29,8 +29,6 @@ public class User implements Serializable {
     private String mailPassword;
     private String mailHost;
     private String mailPort;
-
-    private int intervalPeriod;
 }
 
 

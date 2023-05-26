@@ -2,16 +2,10 @@ package com.balumbo.blb.controller;
 
 
 import com.balumbo.blb.Service.UserService;
-import com.balumbo.blb.model.MailList;
-import com.balumbo.blb.model.MailRow;
-import com.balumbo.blb.model.SequenceList;
-import com.balumbo.blb.model.User;
+import com.balumbo.blb.model.*;
 import com.balumbo.blb.objects.DataRow;
 import com.balumbo.blb.objects.HeaderValues;
-import com.balumbo.blb.repository.MailListRepository;
-import com.balumbo.blb.repository.MailRowRepository;
-import com.balumbo.blb.repository.SequenceListRepository;
-import com.balumbo.blb.repository.UserRepository;
+import com.balumbo.blb.repository.*;
 import com.balumbo.blb.security.CustomUserDetails;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -38,6 +32,9 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import javax.annotation.PostConstruct;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import javax.mail.*;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 import javax.security.auth.login.LoginException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -47,20 +44,24 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringReader;
 import java.sql.Date;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.List;
+import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 
 @Controller
 public class UserController {
 
+    static String urlPath = "http://localhost:8080";
+
     @Autowired
     private UserService servDao;
+
+    @Autowired
+    private BlacklistRepository blacklistRepository;
 
     @Autowired
     UserRepository userRepository;
@@ -100,12 +101,12 @@ public class UserController {
         Page<MailRow> mailRow = mailRowRepository.findByMailListIdAndIsHeader(mailList.getId(), true, pageable);
         Page<MailRow> firstRow = mailRowRepository.findByMailListIdAndIsHeader(mailList.getId(), false, pageable);
         ArrayList<SequenceList> sequenceLists = sequenceListRepository.findByMailListId(mailList.getId());
-        ArrayList<HeaderValues> headerValues = new ArrayList<>();
+        ArrayList<DataRow> headerValues = new ArrayList<>();
         ArrayList<DataRow> dataRows = new ArrayList<>();
         String[] mailRows = mailRow.getContent().get(0).getDataRow().split(",");
         String[] firstRowString = firstRow.getContent().get(0).getDataRow().split(",");
         for(int i = 0; i<mailRows.length;i++){
-            HeaderValues headerValue = new HeaderValues();
+            DataRow headerValue = new DataRow();
             headerValue.setIndex(i);
             headerValue.setName(mailRows[i].replaceAll(" ", "").toLowerCase());
             headerValues.add(headerValue);
@@ -116,7 +117,7 @@ public class UserController {
             dataRow.setName(firstRowString[i]);
             dataRows.add(dataRow);
         }
-        model.addAttribute("headersJson", parseHeadersToJson(headerValues));
+        model.addAttribute("headersJson", parseDataRowToJson(headerValues));
         model.addAttribute("firstRowJson", parseDataRowToJson(dataRows));
         model.addAttribute("headers", headerValues);
         model.addAttribute("mailList", mailList);
@@ -129,6 +130,39 @@ public class UserController {
         addDashboardAttributes(model, user);
         model.addAttribute("user", user);
         return "dashboard";
+    }
+    @GetMapping("/track/{id}")
+    public String dashboard(Model model, @PathVariable long id){
+        MailRow mailRow = mailRowRepository.findById(id);
+        mailRow.setOpened(true);
+        mailRow.setTimeOpened(returnDateWithTime());
+        mailRow.setTimesOpened(mailRow.getTimesOpened()+1);
+        mailRowRepository.save(mailRow);
+        return "bannlyst";
+    }
+    public String returnDateWithTime(){
+        java.util.Date date = new java.util.Date();
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        df.setTimeZone(TimeZone.getTimeZone("Europe/Stockholm"));
+        return df.format(date);
+    }
+    @GetMapping("/user/test-mejl/{id}")
+    public String testMail(Model model, @PathVariable long id, RedirectAttributes redirectAttributes, HttpServletRequest request) throws MessagingException, IOException, CsvException {
+        User user = returnCurrentUser();
+        MailList mailList = mailListRepository.findById(id);
+        MailRow mailRow = mailRowRepository.findFirstByMailListIdAndIsHeader(mailList.getId(), false);
+        sendTestEmailToSelf(mailRow, user, mailList, request);
+        redirectAttributes.addFlashAttribute("sentTest", true);
+        return "redirect:/user/koade-utskick?page=0";
+    }
+    @GetMapping("/user/test-mejl-fardig/{id}")
+    public String testMailFinished(Model model, @PathVariable long id, RedirectAttributes redirectAttributes, HttpServletRequest request) throws MessagingException, IOException, CsvException {
+        User user = returnCurrentUser();
+        MailList mailList = mailListRepository.findById(id);
+        MailRow mailRow = mailRowRepository.findFirstByMailListIdAndIsHeader(mailList.getId(), false);
+        sendTestEmailToSelf(mailRow, user, mailList, request);
+        redirectAttributes.addFlashAttribute("sentTest", true);
+        return "redirect:/user/fardiga-utskick?page=0";
     }
     public void addDashboardAttributes(Model model, User user){
         Pageable pageable = PageRequest.of(0, 5);
@@ -144,6 +178,23 @@ public class UserController {
     @GetMapping("/login")
     public String login(){
         return "login";
+    }
+    @GetMapping("/bannlys/{id}")
+    public String banEmail(@PathVariable long id) throws IOException, CsvException {
+        MailRow mailRow = mailRowRepository.findById(id);
+        MailList mailList = mailListRepository.findById(mailRow.getMailListId());
+        ArrayList<DataRow> firstRow = parseCSVRows(mailRow.getDataRow(), 0, mailList.getSeparatorValue(), false);
+        for(int i = 0; i<firstRow.size();i++){
+            Blacklist blacklist = new Blacklist();
+            String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
+            Pattern pattern = Pattern.compile(emailRegex);
+            if(pattern.matcher(firstRow.get(i).getName()).matches()){
+                blacklist.setUserId(mailList.getUserId());
+                blacklist.setEmail(firstRow.get(i).getName());
+                blacklistRepository.save(blacklist);
+            }
+        }
+        return "bannlyst";
     }
 
     @GetMapping("/user/koade-utskick")
@@ -180,10 +231,29 @@ public class UserController {
 
         OutputStream outputStream = response.getOutputStream();
 
-        for (int i = 0; i < mailRows.size(); i++) {
-            String row = mailRows.get(i).getDataRow();
-            outputStream.write(row.getBytes());
+        boolean hasHeader = false;
+        for(int i = 0; i<mailRows.size();i++){
+            if(mailRows.get(i).isHeader()){
+                hasHeader = true;
+                break;
+            }
+        }
+        if(hasHeader){
+            String headerRow = mailRows.get(0).getDataRow() + "," + "isOpened" + "," + "timeOpened" + "," + "timesOpened";
+            outputStream.write(headerRow.getBytes());
             outputStream.write("\n".getBytes());
+            for (int i = 1; i < mailRows.size(); i++) {
+                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened();
+                outputStream.write(row.getBytes());
+                outputStream.write("\n".getBytes());
+            }
+        }
+        else{
+            for (int i = 0; i < mailRows.size(); i++) {
+                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened();
+                outputStream.write(row.getBytes());
+                outputStream.write("\n".getBytes());
+            }
         }
 
         outputStream.flush();
@@ -200,10 +270,29 @@ public class UserController {
 
         OutputStream outputStream = response.getOutputStream();
 
-        for (int i = 0; i < mailRows.size(); i++) {
-            String row = mailRows.get(i).getDataRow();
-            outputStream.write(row.getBytes());
+        boolean hasHeader = false;
+        for(int i = 0; i<mailRows.size();i++){
+            if(mailRows.get(i).isHeader()){
+                hasHeader = true;
+                break;
+            }
+        }
+        if(hasHeader){
+            String headerRow = mailRows.get(0).getDataRow() + "," + "isOpened" + "," + "timeOpened" + "," + "timesOpened";
+            outputStream.write(headerRow.getBytes());
             outputStream.write("\n".getBytes());
+            for (int i = 1; i < mailRows.size(); i++) {
+                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened();
+                outputStream.write(row.getBytes());
+                outputStream.write("\n".getBytes());
+            }
+        }
+        else{
+            for (int i = 0; i < mailRows.size(); i++) {
+                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened();
+                outputStream.write(row.getBytes());
+                outputStream.write("\n".getBytes());
+            }
         }
 
         outputStream.flush();
@@ -220,6 +309,7 @@ public class UserController {
         long id = Long.parseLong(request.getParameter("id"));
         MailList mailList = mailListRepository.findById(id);
         mailList.setFinished(true);
+        mailList.setOngoing(false);
         mailListRepository.save(mailList);
         return "redirect:/user/koade-utskick?page=0";
     }
@@ -252,7 +342,13 @@ public class UserController {
         String date = request.getParameter("date");
         MailList mailList = mailListRepository.findById(id);
         mailList.setFinished(false);
+        mailList.setOngoing(false);
         mailList.setDispatchDate(Date.valueOf(date));
+        ArrayList<MailRow> mailRows = mailRowRepository.findByMailListId(mailList.getId());
+        for(int i = 0; i<mailRows.size();i++){
+            mailRows.get(i).setSent(false);
+        }
+        mailRowRepository.saveAll(mailRows);
         mailListRepository.save(mailList);
         return "redirect:/user/fardiga-utskick?page=0";
     }
@@ -264,15 +360,18 @@ public class UserController {
         String password = request.getParameter("password");
         String host = request.getParameter("host");
         String port = request.getParameter("port");
-        int interval = Integer.parseInt("interval");
         user.setMailEmail(email);
         user.setMailAlias(alias);
-        user.setIntervalPeriod(interval);
         user.setMailPassword(password);
         user.setMailHost(host);
         user.setMailPort(port);
-        userRepository.save(user);
-        redirectAttributes.addFlashAttribute("hasError", false);
+        if(emailValidation(user)){
+            userRepository.save(user);
+            redirectAttributes.addFlashAttribute("hasError", false);
+        }
+        else{
+            redirectAttributes.addFlashAttribute("hasError", true);
+        }
         return "redirect:/user/dashboard";
     }
     @RequestMapping(value=("/user/upload-list"),headers=("content-type=multipart/*"),method= RequestMethod.POST)
@@ -280,13 +379,14 @@ public class UserController {
         byte[] bytes = file.getBytes();
         String completeData = new String(bytes);
         //Parse the csv
-        ArrayList<HeaderValues> headerValues = parseDataRowToHeader(parseCSVRows(completeData, 0, request.getParameter("separator"), true));
+        ArrayList<DataRow> headerValues = parseCSVRows(completeData, 0, request.getParameter("separator"), true);
         ArrayList<DataRow> firstRow = parseCSVRows(completeData, 1, request.getParameter("separator"), false);
 
         model.addAttribute("headers", headerValues);
-        model.addAttribute("headersJson", parseHeadersToJson(headerValues));
+        model.addAttribute("headersJson", parseDataRowToJson(headerValues));
         model.addAttribute("firstRowJson", parseDataRowToJson(firstRow));
         model.addAttribute("completeData", completeData);
+        model.addAttribute("separator", request.getParameter("separator"));
         model.addAttribute("name", request.getParameter("name"));
         model.addAttribute("user", returnCurrentUser());
         return "list-content";
@@ -299,6 +399,8 @@ public class UserController {
         String footerContent = request.getParameter("footerContent");
         String title = request.getParameter("title");
         String completeData = request.getParameter("completeData");
+        String interval = request.getParameter("interval");
+        String separator = request.getParameter("separator");
 
         //Lists to split the data
         ArrayList<String> sequenceContentList = new ArrayList<>();
@@ -331,6 +433,8 @@ public class UserController {
         User user = returnCurrentUser();
         //MailList
         mailList.setFileName(fileName);
+        mailList.setSeparatorValue(separator);
+        mailList.setIntervalPeriod(Integer.parseInt(interval));
         mailList.setFooterContent(footerContent);
         mailList.setDispatchDate(Date.valueOf(dispatchDate));
         mailList.setMainContent(mainContent);
@@ -369,13 +473,27 @@ public class UserController {
 
                 List<String[]> r = reader.readAll();
                 for(int i = 0; i<r.size();i++){
-                    String csvLine = String.join(",", r.get(i));
+                    String csvLine = String.join(mailList.getSeparatorValue(), r.get(i));
                     MailRow mailRow = new MailRow();
                     mailRow.setDataRow(csvLine);
                     mailRow.setUserId(user.getId());
                     mailRow.setMailListId(mailList.getId());
+
                     if(i==0){
                         mailRow.setHeader(true);
+                    }
+                    else{
+                        //Determine email adress
+                        String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
+                        Pattern pattern = Pattern.compile(emailRegex);
+                        ArrayList<DataRow> dataRowEmail = parseCSVRows(csvLine, 0, mailList.getSeparatorValue(), false);
+                        for(int c = 0; c<dataRowEmail.size();c++){
+                            System.out.println(dataRowEmail.get(c).getName());
+                            if(pattern.matcher(dataRowEmail.get(c).getName()).matches()){
+                                mailRow.setEmail(dataRowEmail.get(c).getName());
+                                break;
+                            }
+                        }
                     }
                     rows.add(mailRow);
                 }
@@ -392,6 +510,7 @@ public class UserController {
         String mainContent = request.getParameter("mainContent");
         String footerContent = request.getParameter("footerContent");
         String title = request.getParameter("title");
+        String interval = request.getParameter("interval");
 
         ArrayList<String> sequenceContentList = new ArrayList<>();
         ArrayList<String> sequenceAfterList = new ArrayList<>();
@@ -419,6 +538,7 @@ public class UserController {
         User user = returnCurrentUser();
         //MailList
         MailList mailList = mailListRepository.findById(id);
+        mailList.setIntervalPeriod(Integer.parseInt(interval));
         mailList.setFileName(fileName);
         mailList.setFooterContent(footerContent);
         mailList.setDispatchDate(Date.valueOf(dispatchDate));
@@ -445,19 +565,6 @@ public class UserController {
         sequenceListRepository.saveAll(newSequenceLists);
         return "redirect:/user/koade-utskick?page=0";
     }
-    public List<String> parseHeadersToJson(ArrayList<HeaderValues> headerValues){
-        ObjectMapper objectMapper = new ObjectMapper();
-        List<String> jsonHeaders = headerValues.stream()
-                .map(header -> {
-                    try {
-                        return objectMapper.writeValueAsString(header);
-                    } catch (JsonProcessingException e) {
-                        throw new RuntimeException(e);
-                    }
-                })
-                .collect(Collectors.toList());
-        return jsonHeaders;
-    }
     public List<String> parseDataRowToJson(ArrayList<DataRow> dataRows){
         ObjectMapper objectMapper = new ObjectMapper();
         List<String> jsonHeaders = dataRows.stream()
@@ -483,7 +590,7 @@ public class UserController {
         for(int i = 0; i<firstLine.length;i++){
             DataRow dataRow = new DataRow();
             if(isHeader){
-                dataRow.setName(firstLine[i].replaceAll(" ", ""));
+                dataRow.setName(firstLine[i].replaceAll(" ", "").toLowerCase());
             }
             else{
                 dataRow.setName(firstLine[i]);
@@ -508,6 +615,136 @@ public class UserController {
         CustomUserDetails customUser = (CustomUserDetails) auth.getPrincipal();
         User currentUser = userRepository.findByEmail(customUser.getUsername());
         return currentUser;
+    }
+    public void sendTestEmailToSelf(MailRow mailRow, User user, MailList mailList, HttpServletRequest request) throws MessagingException, IOException, CsvException {
+        // Recipient's email ID needs to be mentioned.
+        String to = user.getEmail();
+
+        // Sender's email ID needs to be mentioned
+        String from = user.getMailEmail();
+        final String username = user.getMailEmail();
+        final String password = user.getMailPassword();
+
+        // Assuming you are sending email through relay.jangosmtp.net
+        String host = user.getMailHost();
+
+        Properties props = new Properties();
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", host);
+        props.put("mail.smtp.port", user.getMailPort());
+
+        // Get the Session object.
+        Session session = Session.getInstance(props,
+                new javax.mail.Authenticator() {
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(username, password);
+                    }
+                });
+        // Create a default MimeMessage object.
+        Message message = new MimeMessage(session);
+        // Set From: header field of the header.
+        message.setFrom(new InternetAddress(from, user.getMailAlias()));
+        // Set To: header field of the header.
+        message.setRecipients(Message.RecipientType.TO,
+                InternetAddress.parse(to));
+
+        //Replace the title with variables
+        Pageable pageableHeader = PageRequest.of(0, 1);
+
+        String replacedTitle = mailList.getTitle();
+        Page<MailRow> headerValues = mailRowRepository.findByMailListIdAndIsHeader(mailList.getId(), true, pageableHeader);
+        ArrayList<DataRow> variables = parseCSVRows(headerValues.getContent().get(0).getDataRow(), 0, mailList.getSeparatorValue(), true);
+
+        //Make a complete line
+
+        ArrayList<DataRow> values = parseCSVRows(mailRow.getDataRow(), 0, mailList.getSeparatorValue(), false);
+
+        for(int i = 0; i<variables.size();i++){
+            replacedTitle = replacedTitle.replaceAll("\\{" + variables.get(i).getName() + "}", values.get(variables.get(i).getIndex()).getName());
+        }
+        // Set Subject: header field
+        message.setSubject(replacedTitle);
+
+        //Replace the content with variables
+        String replacedContent = mailList.getMainContent();
+
+        String replacedFooter = mailList.getFooterContent();
+
+        for(int i = 0; i<variables.size();i++){
+            replacedContent = replacedContent.replaceAll("\\{" + variables.get(i).getName() + "}", values.get(variables.get(i).getIndex()).getName());
+        }
+
+        for(int i = 0; i<variables.size();i++){
+            replacedFooter = replacedFooter.replaceAll("\\{" + variables.get(i).getName() + "}", values.get(variables.get(i).getIndex()).getName());
+        }
+
+        replacedContent = replacedContent.replaceAll("\n", "<br>");
+        replacedFooter = replacedFooter.replaceAll("\n", "<br>");
+
+        // Now set the actual message
+        message.setContent(replacedContent + "<br><br>" + replacedFooter, "text/html; charset=UTF-8");
+        // Send message
+        Transport.send(message);
+        System.out.println("Sent message successfully for user " + user.getEmail() + ". Interval=" + mailList.getIntervalPeriod() + "ms");
+    }
+    public boolean emailValidation(User user) {
+        try{
+            // Recipient's email ID needs to be mentioned.
+            String to = user.getEmail();
+
+            // Sender's email ID needs to be mentioned
+            String from = user.getMailEmail();
+            final String username = user.getMailEmail();
+            final String password = user.getMailPassword();
+
+            // Assuming you are sending email through relay.jangosmtp.net
+            String host = user.getMailHost();
+
+            Properties props = new Properties();
+            props.put("mail.smtp.auth", "true");
+            props.put("mail.smtp.starttls.enable", "true");
+            props.put("mail.smtp.host", host);
+            props.put("mail.smtp.port", user.getMailPort());
+
+            // Get the Session object.
+            Session session = Session.getInstance(props,
+                    new javax.mail.Authenticator() {
+                        protected PasswordAuthentication getPasswordAuthentication() {
+                            return new PasswordAuthentication(username, password);
+                        }
+                    });
+            // Create a default MimeMessage object.
+            Message message = new MimeMessage(session);
+            // Set From: header field of the header.
+            message.setFrom(new InternetAddress(from, user.getMailAlias()));
+            // Set To: header field of the header.
+            message.setRecipients(Message.RecipientType.TO,
+                    InternetAddress.parse(to));
+
+            //Replace the title with variables
+            Pageable pageableHeader = PageRequest.of(0, 1);
+
+            String replacedTitle = "Test verifiering av inställningar";
+
+            // Set Subject: header field
+            message.setSubject(replacedTitle);
+
+            //Replace the content with variables
+            String replacedContent = "Uppdateringen av dina inställningar lyckades.";
+
+            // Now set the actual message
+            message.setContent(replacedContent, "text/html; charset=UTF-8");
+            // Send message
+            Transport.send(message);
+            return true;
+        }catch (Exception e){
+            return false;
+        }
+    }
+    public String getSiteUrl(HttpServletRequest request){
+        String siteUrl = request.getRequestURL().toString();
+        return siteUrl.replaceAll(request.getServletPath(), "");
     }
 
 }

@@ -17,6 +17,7 @@ public class MailList implements Serializable {
 
     @Column(length=200000000,columnDefinition="LONGTEXT")
     private String fileName;
+    private String separatorValue;
     private Date dispatchDate;
     @Column(length=200000000,columnDefinition="LONGTEXT")
     private String mainContent;
@@ -28,4 +29,6 @@ public class MailList implements Serializable {
     private boolean ongoing;
     private boolean finishedUploading;
     private long userId;
+
+    private int intervalPeriod;
 }

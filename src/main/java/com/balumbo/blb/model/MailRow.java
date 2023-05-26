@@ -17,9 +17,13 @@ public class MailRow implements Serializable {
     private long mailListId;
     @Column(length=200000000,columnDefinition="LONGTEXT")
     private String dataRow;
+    private String email;
     private boolean sent;
     private boolean error;
     private boolean isHeader;
+    private boolean opened;
+    private String timeOpened;
+    private int timesOpened;
     private long userId;
 
 }
