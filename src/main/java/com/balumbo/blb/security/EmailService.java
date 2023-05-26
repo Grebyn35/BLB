@@ -82,9 +82,6 @@ public class EmailService {
                 if(isWithinWorkingHours()){
                     applicationEventPublisher.publishEvent(new HandleMailListEvent(mailLists.get(i)));
                 }
-                else{
-                    System.out.println("not within working hours");
-                }
             }
             else{
                 System.out.println("List cannot sent, user " + user.getEmail() + " has errors");
