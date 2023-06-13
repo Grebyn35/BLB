@@ -406,77 +406,79 @@ public class UserController {
     }
     @PostMapping("/user/upload-list/complete")
     public String uploadListComplete(Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) throws CsvException, IOException {
-        String fileName = request.getParameter("name");
-        String dispatchDate = request.getParameter("date");
-        String mainContent = request.getParameter("mainContent");
-        String footerContent = request.getParameter("footerContent");
-        String title = request.getParameter("title");
-        String completeData = request.getParameter("completeData");
-        String interval = request.getParameter("interval");
-        String separator = request.getParameter("separator");
-
-        //Lists to split the data
-        ArrayList<String> sequenceContentList = new ArrayList<>();
-        ArrayList<String> sequenceAfterList = new ArrayList<>();
-        ArrayList<String> titleSequenceList = new ArrayList<>();
-
-        //List of actual objects
-        ArrayList<SequenceList> sequenceLists = new ArrayList<>();
-        MailList mailList = new MailList();
-
-        String[] sequenceContent = request.getParameterValues("sequenceContent[]");
-        String[] sequenceAfter = request.getParameterValues("sequenceAfter[]");
-        String[] titleSequence = request.getParameterValues("titleSequence[]");
-
-        if(sequenceContent != null){
-            for(int i = 0; i<sequenceContent.length;i++){
-                sequenceContentList.add(sequenceContent[i]);
-            }
-        }
-        if(sequenceAfter != null){
-            for(int i = 0; i<sequenceAfter.length;i++){
-                sequenceAfterList.add(sequenceAfter[i]);
-            }
-        }
-        if(titleSequence != null){
-            for(int i = 0; i<titleSequence.length;i++){
-                titleSequenceList.add(titleSequence[i]);
-            }
-        }
-        User user = returnCurrentUser();
-        //MailList
-        mailList.setFileName(fileName);
-        mailList.setSeparatorValue(separator);
-        mailList.setIntervalPeriod(Integer.parseInt(interval));
-        mailList.setFooterContent(footerContent);
-        mailList.setDispatchDate(Date.valueOf(dispatchDate));
-        mailList.setMainContent(mainContent);
-        mailList.setTitle(title);
-        mailList.setUserId(user.getId());
-        MailList savedMailList = mailListRepository.save(mailList);
-
-        //SequenceList
-        for(int i = 0; i<sequenceContentList.size();i++){
-            SequenceList sequenceList = new SequenceList();
-            sequenceList.setMailListId(savedMailList.getId());
-            sequenceList.setTitle(titleSequenceList.get(i));
-            sequenceList.setMainContent(sequenceContentList.get(i));
-            sequenceList.setSequenceStartDate(Date.valueOf(sequenceAfterList.get(i)));
-            sequenceList.setUserId(user.getId());
-            sequenceLists.add(sequenceList);
-        }
-        sequenceListRepository.saveAll(sequenceLists);
 
         //Save the rows in a new thread so the user does not have to wait
-        new Thread(asyncSaveRows(completeData, user, savedMailList)).start();
+        User user = returnCurrentUser();
+        new Thread(asyncSaveRows(user, request)).start();
 
         redirectAttributes.addFlashAttribute("uploaded", true);
         return "redirect:/user/dashboard";
     }
-    public Runnable asyncSaveRows(String completeData, User user, MailList mailList){
+    public Runnable asyncSaveRows(User user, HttpServletRequest request){
         return new Runnable() {
             @SneakyThrows
             public void run() {
+                String fileName = request.getParameter("name");
+                String dispatchDate = request.getParameter("date");
+                String mainContent = request.getParameter("mainContent");
+                String footerContent = request.getParameter("footerContent");
+                String title = request.getParameter("title");
+                String completeData = request.getParameter("completeData");
+                String interval = request.getParameter("interval");
+                String separator = request.getParameter("separator");
+
+                //Lists to split the data
+                ArrayList<String> sequenceContentList = new ArrayList<>();
+                ArrayList<String> sequenceAfterList = new ArrayList<>();
+                ArrayList<String> titleSequenceList = new ArrayList<>();
+
+                //List of actual objects
+                ArrayList<SequenceList> sequenceLists = new ArrayList<>();
+                MailList mailList = new MailList();
+
+                String[] sequenceContent = request.getParameterValues("sequenceContent[]");
+                String[] sequenceAfter = request.getParameterValues("sequenceAfter[]");
+                String[] titleSequence = request.getParameterValues("titleSequence[]");
+
+                if(sequenceContent != null){
+                    for(int i = 0; i<sequenceContent.length;i++){
+                        sequenceContentList.add(sequenceContent[i]);
+                    }
+                }
+                if(sequenceAfter != null){
+                    for(int i = 0; i<sequenceAfter.length;i++){
+                        sequenceAfterList.add(sequenceAfter[i]);
+                    }
+                }
+                if(titleSequence != null){
+                    for(int i = 0; i<titleSequence.length;i++){
+                        titleSequenceList.add(titleSequence[i]);
+                    }
+                }
+                //MailList
+                mailList.setFileName(fileName);
+                mailList.setSeparatorValue(separator);
+                mailList.setIntervalPeriod(Integer.parseInt(interval));
+                mailList.setFooterContent(footerContent);
+                mailList.setDispatchDate(Date.valueOf(dispatchDate));
+                mailList.setMainContent(mainContent);
+                mailList.setTitle(title);
+                mailList.setUserId(user.getId());
+                MailList savedMailList = staticMailListRepository.save(mailList);
+
+                //SequenceList
+                for(int i = 0; i<sequenceContentList.size();i++){
+                    SequenceList sequenceList = new SequenceList();
+                    sequenceList.setMailListId(savedMailList.getId());
+                    sequenceList.setTitle(titleSequenceList.get(i));
+                    sequenceList.setMainContent(sequenceContentList.get(i));
+                    sequenceList.setSequenceStartDate(Date.valueOf(sequenceAfterList.get(i)));
+                    sequenceList.setUserId(user.getId());
+                    sequenceLists.add(sequenceList);
+                }
+                staticSequenceListRepository.saveAll(sequenceLists);
+
+
                 ArrayList<MailRow> rows = new ArrayList<>();
                 //MailRow
                 CSVReader reader = new CSVReaderBuilder(
