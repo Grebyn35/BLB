@@ -433,7 +433,6 @@ public class UserController {
                 ArrayList<String> titleSequenceList = new ArrayList<>();
 
                 //List of actual objects
-                ArrayList<SequenceList> sequenceLists = new ArrayList<>();
                 MailList mailList = new MailList();
 
                 String[] sequenceContent = request.getParameterValues("sequenceContent[]");
@@ -478,8 +477,6 @@ public class UserController {
                     staticSequenceListRepository.save(sequenceList);
                 }
 
-
-                ArrayList<MailRow> rows = new ArrayList<>();
                 //MailRow
                 CSVReader reader = new CSVReaderBuilder(
                         new StringReader(completeData))
@@ -511,6 +508,7 @@ public class UserController {
                     }
                     staticMailRowRepository.save(mailRow);
                 }
+                System.out.println("finished uploading list");
                 mailList.setFinishedUploading(true);
                 staticMailListRepository.save(mailList);
             }
