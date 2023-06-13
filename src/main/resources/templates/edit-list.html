@@ -164,7 +164,7 @@
                     <div class="row">
                         <div class="col-xl-6">
                             <label>Huvud innehåll</label>
-                            <textarea th:utext="${mailList.mainContent}" oninput="mirrorText(this)" required name="mainContent" class="w-100" cols="30" rows="10"></textarea>
+                            <div th:utext="${mailList.mainContent}" contenteditable="true" type="text/html; charset=utf-8" oninput="mirrorText(this)" required name="mainContent" class="w-100 form-control content" cols="30" rows="10"></div>
                         </div>
                         <div class="col-xl-6">
                             <label></label>
@@ -174,7 +174,7 @@
                     <div class="row">
                         <div class="col-xl-6">
                             <label>Footer innehåll</label>
-                            <textarea th:utext="${mailList.footerContent}" oninput="mirrorText(this)" name="footerContent" class="w-100" cols="30" rows="10"></textarea>
+                            <textarea th:utext="${mailList.footerContent}" contenteditable="true" type="text/html; charset=utf-8" oninput="mirrorText(this)" name="footerContent" class="w-100 form-control content" cols="30" rows="10"></textarea>
                         </div>
                         <div class="col-xl-6">
                             <label></label>
@@ -196,7 +196,7 @@
                         </div>
                         <div class="row">
                             <div class="col-xl-6">
-                                <textarea th:utext="${sequence.mainContent}" oninput="mirrorTextSequence(this)" required name="sequenceContent[]" class="w-100" cols="30" rows="10"></textarea>
+                                <div th:utext="${sequence.mainContent}" contenteditable="true" type="text/html; charset=utf-8" oninput="mirrorTextSequence(this)" required name="sequenceContent[]" class="w-100 form-control content" cols="30" rows="10"></div>
                             </div>
                             <div class="col-xl-6">
                                 <div class="w-100"></div>
@@ -233,7 +233,7 @@
         </div>
         <div class="row">
             <div class="col-xl-6">
-                <textarea oninput="mirrorTextSequence(this)" required name="sequenceContent[]" class="w-100" cols="30" rows="10"></textarea>
+                <div oninput="mirrorTextSequence(this)" contenteditable="true" type="text/html; charset=utf-8" required name="sequenceContent[]" class="w-100 form-control content" cols="30" rows="10"></div>
             </div>
             <div class="col-xl-6">
                 <div class="w-100"></div>
@@ -296,6 +296,9 @@
     function mirrorText(e){
         let text = e.value
         let sibling = e.parentElement.nextElementSibling.firstElementChild.nextElementSibling
+        if(sibling.tagName == "DIV"){
+            text = e.innerHTML
+        }
 
         for(let i = 0; i<headers.length;i++){
             var pattern = "{" + headers[i].name + "}";
@@ -312,7 +315,10 @@
     }
     function mirrorTextSequence(e){
         let text = e.value
-        let sibling = e.parentElement.nextElementSibling.firstElementChild
+        let sibling = e.parentElement.nextElementSibling.firstElementChild.nextElementSibling
+        if(sibling.tagName == "DIV"){
+            text = e.innerHTML
+        }
 
         for(let i = 0; i<headers.length;i++){
             var pattern = "{" + headers[i].name + "}";

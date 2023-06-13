@@ -164,7 +164,7 @@
                     <div class="row">
                         <div class="col-xl-6">
                             <label>Huvud innehåll</label>
-                            <textarea oninput="mirrorText(this)" contenteditable="true" type="text/html; charset=utf-8" required name="mainContent" class="w-100" cols="30" rows="10"></textarea>
+                            <div oninput="mirrorText(this)" contenteditable="true" type="text/html; charset=utf-8" required name="mainContent" class="w-100 form-control content" cols="30" rows="10"></div>
                         </div>
                         <div class="col-xl-6">
                             <label></label>
@@ -174,7 +174,7 @@
                     <div class="row">
                         <div class="col-xl-6">
                             <label>Footer innehåll</label>
-                            <textarea oninput="mirrorText(this)" name="footerContent" class="w-100" cols="30" rows="10"></textarea>
+                            <div oninput="mirrorText(this)" contenteditable="true" type="text/html; charset=utf-8" name="footerContent" class="w-100 form-control content" cols="30" rows="10"></div>
                         </div>
                         <div class="col-xl-6">
                             <label></label>
@@ -206,7 +206,7 @@
         </div>
         <div class="row">
             <div class="col-xl-6">
-                <textarea oninput="mirrorTextSequence(this)" contenteditable="true" type="text/html; charset=utf-8" required name="sequenceContent[]" class="w-100" cols="30" rows="10"></textarea>
+                <div oninput="mirrorTextSequence(this)" contenteditable="true" type="text/html; charset=utf-8" required name="sequenceContent[]" class="w-100 form-control content" cols="30" rows="10"></div>
             </div>
             <div class="col-xl-6">
                 <div class="w-100"></div>
@@ -253,8 +253,10 @@
 
     function mirrorText(e){
         let text = e.value
-        let html = e.innerHTML
         let sibling = e.parentElement.nextElementSibling.firstElementChild.nextElementSibling
+        if(sibling.tagName == "DIV"){
+            text = e.innerHTML
+        }
 
         for(let i = 0; i<headers.length;i++){
             var pattern = "{" + headers[i].name + "}";
@@ -271,7 +273,10 @@
     }
     function mirrorTextSequence(e){
         let text = e.value
-        let sibling = e.parentElement.nextElementSibling.firstElementChild
+        let sibling = e.parentElement.nextElementSibling.firstElementChild.nextElementSibling
+        if(sibling.tagName == "DIV"){
+            text = e.innerHTML
+        }
 
         for(let i = 0; i<headers.length;i++){
             var pattern = "{" + headers[i].name + "}";

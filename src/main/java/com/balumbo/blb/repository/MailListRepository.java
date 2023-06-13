@@ -18,11 +18,11 @@ public interface MailListRepository extends CrudRepository<MailList,Long> {
     MailList findById(long id);
     ArrayList<MailList> findAllByUserId(long userId);
     ArrayList<MailList> findAllByFinishedAndUserId(boolean finished, long userId);
-    @Query("SELECT m FROM MailList m WHERE m.finished = :finished AND m.ongoing = :ongoing AND (m.dispatchDate >= :date)")
-    ArrayList<MailList> findAllByFinishedAndDispatchDateEqualOrAfterAndOngoing(@Param("finished") boolean finished, @Param("ongoing") boolean ongoing, @Param("date") Date date);
+    @Query("SELECT m FROM MailList m WHERE m.finished = :finished AND m.ongoing = :ongoing AND (m.dispatchDate <= :date)")
+    ArrayList<MailList> findAllByFinishedAndDispatchDateEqualOrBeforeAndOngoing(@Param("finished") boolean finished, @Param("ongoing") boolean ongoing, @Param("date") Date date);
 
-    @Query("SELECT m FROM MailList m WHERE m.finished = :finished AND (m.dispatchDate >= :date)")
-    ArrayList<MailList> findAllByFinishedAndDispatchDateEqualOrAfter(@Param("finished") boolean finished, @Param("date") Date date);
+    @Query("SELECT m FROM MailList m WHERE m.finished = :finished AND (m.dispatchDate <= :date)")
+    ArrayList<MailList> findAllByFinishedAndDispatchDateEqualOrBefore(@Param("finished") boolean finished, @Param("date") Date date);
 
     Page<MailList> findAllByFinishedAndUserIdAndFinishedUploadingIsTrueOrderByDispatchDate(boolean finished, long userId, Pageable pageable);
 }

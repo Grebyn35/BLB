@@ -34,6 +34,13 @@ body{
     font-weight: normal;
 }
 
+.content{
+    min-height: 350px;
+    border: 1px solid #c5c6c6;
+    border-top-radius: 0px;
+    height: auto;
+}
+
 
 .fl-table {
     border-radius: 5px;

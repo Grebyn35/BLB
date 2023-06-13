@@ -67,7 +67,7 @@ public class EmailService {
     @PostConstruct
     public void resetOngoing(){
         System.out.println("starting up. Resetting ongoing on unfinished lists with date after current.");
-        ArrayList<MailList> mailLists = mailListRepository.findAllByFinishedAndDispatchDateEqualOrAfter(false, java.sql.Date.valueOf(LocalDate.now()));
+        ArrayList<MailList> mailLists = mailListRepository.findAllByFinishedAndDispatchDateEqualOrBefore(false, java.sql.Date.valueOf(LocalDate.now()));
         for(int i = 0; i<mailLists.size();i++){
             mailLists.get(i).setOngoing(false);
         }
@@ -76,12 +76,12 @@ public class EmailService {
 
     @Scheduled(fixedRate = 20000) // Check for changes in the mailList every 5 seconds
     public void sendEmails() {
-        ArrayList<MailList> mailLists = mailListRepository.findAllByFinishedAndDispatchDateEqualOrAfterAndOngoing(false, false, java.sql.Date.valueOf(LocalDate.now()));
+        ArrayList<MailList> mailLists = mailListRepository.findAllByFinishedAndDispatchDateEqualOrBeforeAndOngoing(false, false, java.sql.Date.valueOf(LocalDate.now()));
         for(int i = 0; i<mailLists.size();i++){
             User user = userRepository.findById(mailLists.get(i).getUserId());
             if(!user.isError()){
                 if(isWithinWorkingHours()){
-                    applicationEventPublisher.publishEvent(new HandleMailListEvent(mailLists.get(i)));
+                    //applicationEventPublisher.publishEvent(new HandleMailListEvent(mailLists.get(i)));
                 }
             }
             else{
