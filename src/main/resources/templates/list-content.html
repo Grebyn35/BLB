@@ -273,7 +273,7 @@
     }
     function mirrorTextSequence(e){
         let text = e.value
-        let sibling = e.parentElement.nextElementSibling.firstElementChild.nextElementSibling
+        let sibling = e.parentElement.nextElementSibling.firstElementChild
         if(sibling.tagName == "DIV"){
             text = e.innerHTML
         }
