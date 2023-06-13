@@ -102,9 +102,9 @@ public class EmailService {
         }
         ArrayList<MailRow> mailRows;
         if (blackListEmails.isEmpty()) {
-            mailRows = mailRowRepository.findByMailListIdAndSentAndErrorAndHeaderIsFalse(mailList.getId(), false, false);
+            mailRows = mailRowRepository.findByMailListIdAndSentAndErrorAndIsHeaderIsFalse(mailList.getId(), false, false);
         } else {
-            mailRows = mailRowRepository.findByMailListIdAndSentAndErrorAndHeaderIsFalseAndEmailNotIn(mailList.getId(), false, false, blackListEmails);
+            mailRows = mailRowRepository.findByMailListIdAndSentAndErrorAndIsHeaderIsFalseAndEmailNotIn(mailList.getId(), false, false, blackListEmails);
         }
         mailList.setOngoing(true);
         if(mailRows.size()==0){
