@@ -33,6 +33,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.io.IOException;
 import java.io.StringReader;
+import java.sql.Date;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.DayOfWeek;
@@ -119,6 +120,7 @@ public class EmailService {
                         mailList = mailListRepository.findById(mailList.getId()).get();
                         sendEmail(mailRows.get(i), user, mailList);
                         mailRows.get(i).setSent(true);
+                        mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
                         mailRowRepository.save(mailRows.get(i));
                         Thread.sleep(mailList.getIntervalPeriod());
                     } catch (Exception e) {
@@ -143,6 +145,12 @@ public class EmailService {
         mailList.setOngoing(false);
         mailList.setFinished(true);
         mailListRepository.save(mailList);
+    }
+    public String returnDateWithTime(){
+        java.util.Date date = new java.util.Date();
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+        df.setTimeZone(TimeZone.getTimeZone("Europe/Stockholm"));
+        return df.format(date);
     }
     public void sendErrorEmail(User user){
         user.setError(true);

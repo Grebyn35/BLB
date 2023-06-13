@@ -4,6 +4,7 @@ import lombok.Data;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.sql.Date;
 
 @Data
 @Entity
@@ -24,6 +25,7 @@ public class MailRow implements Serializable {
     private boolean opened;
     private String timeOpened;
     private int timesOpened;
+    private Date sentDate;
     private long userId;
 
 }
