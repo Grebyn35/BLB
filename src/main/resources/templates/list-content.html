@@ -164,7 +164,7 @@
                     <div class="row">
                         <div class="col-xl-6">
                             <label>Huvud innehåll</label>
-                            <textarea oninput="mirrorText(this)" required name="mainContent" class="w-100" cols="30" rows="10"></textarea>
+                            <textarea oninput="mirrorText(this)" contenteditable="true" type="text/html; charset=utf-8" required name="mainContent" class="w-100" cols="30" rows="10"></textarea>
                         </div>
                         <div class="col-xl-6">
                             <label></label>
@@ -206,7 +206,7 @@
         </div>
         <div class="row">
             <div class="col-xl-6">
-                <textarea oninput="mirrorTextSequence(this)" required name="sequenceContent[]" class="w-100" cols="30" rows="10"></textarea>
+                <textarea oninput="mirrorTextSequence(this)" contenteditable="true" type="text/html; charset=utf-8" required name="sequenceContent[]" class="w-100" cols="30" rows="10"></textarea>
             </div>
             <div class="col-xl-6">
                 <div class="w-100"></div>
@@ -253,6 +253,7 @@
 
     function mirrorText(e){
         let text = e.value
+        let html = e.innerHTML
         let sibling = e.parentElement.nextElementSibling.firstElementChild.nextElementSibling
 
         for(let i = 0; i<headers.length;i++){
@@ -261,8 +262,8 @@
             text = text.replace(regex, firstRow[i].name);
         }
         if(sibling.tagName == "DIV"){
-            let htmlText = text.replace(/\n/g, '<br>'); // Replace newline characters with <br> tags
-            sibling.innerHTML = htmlText;
+            //let htmlText = text.replace(/\n/g, '<br>'); // Replace newline characters with <br> tags
+            sibling.innerHTML = text;
         }
         else{
             sibling.value = text;
@@ -278,8 +279,8 @@
             text = text.replace(regex, firstRow[i].name);
         }
         if(sibling.tagName == "DIV"){
-            let htmlText = text.replace(/\n/g, '<br>'); // Replace newline characters with <br> tags
-            sibling.innerHTML = htmlText;
+            //let htmlText = text.replace(/\n/g, '<br>'); // Replace newline characters with <br> tags
+            sibling.innerHTML = text;
         }
         else{
             sibling.value = text;

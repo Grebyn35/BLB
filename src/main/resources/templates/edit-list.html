@@ -303,8 +303,8 @@
             text = text.replace(regex, firstRow[i].name);
         }
         if(sibling.tagName == "DIV"){
-            let htmlText = text.replace(/\n/g, '<br>'); // Replace newline characters with <br> tags
-            sibling.innerHTML = htmlText;
+            //let htmlText = text.replace(/\n/g, '<br>'); // Replace newline characters with <br> tags
+            sibling.innerHTML = text;
         }
         else{
             sibling.value = text;
@@ -320,8 +320,8 @@
             text = text.replace(regex, firstRow[i].name);
         }
         if(sibling.tagName == "DIV"){
-            let htmlText = text.replace(/\n/g, '<br>'); // Replace newline characters with <br> tags
-            sibling.innerHTML = htmlText;
+            //let htmlText = text.replace(/\n/g, '<br>'); // Replace newline characters with <br> tags
+            sibling.innerHTML = text;
         }
         else{
             sibling.value = text;
