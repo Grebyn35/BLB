@@ -458,6 +458,7 @@ public class UserController {
                 //MailList
                 mailList.setFileName(fileName);
                 mailList.setSeparatorValue(separator);
+                System.out.println(interval);
                 mailList.setIntervalPeriod(Integer.parseInt(interval));
                 mailList.setFooterContent(footerContent);
                 mailList.setDispatchDate(Date.valueOf(dispatchDate));
@@ -474,9 +475,8 @@ public class UserController {
                     sequenceList.setMainContent(sequenceContentList.get(i));
                     sequenceList.setSequenceStartDate(Date.valueOf(sequenceAfterList.get(i)));
                     sequenceList.setUserId(user.getId());
-                    sequenceLists.add(sequenceList);
+                    staticSequenceListRepository.save(sequenceList);
                 }
-                staticSequenceListRepository.saveAll(sequenceLists);
 
 
                 ArrayList<MailRow> rows = new ArrayList<>();
@@ -509,9 +509,8 @@ public class UserController {
                             }
                         }
                     }
-                    rows.add(mailRow);
+                    staticMailRowRepository.save(mailRow);
                 }
-                staticMailRowRepository.saveAll(rows);
                 mailList.setFinishedUploading(true);
                 staticMailListRepository.save(mailList);
             }
