@@ -749,9 +749,6 @@ public class UserController {
             replacedFooter = replacedFooter.replaceAll("\\{" + variables.get(i).getName() + "}", values.get(variables.get(i).getIndex()).getName());
         }
 
-        replacedContent = replacedContent.replaceAll("\n", "<br>");
-        replacedFooter = replacedFooter.replaceAll("\n", "<br>");
-
         // Now set the actual message
         message.setContent(replacedContent + "<br><br>" + replacedFooter, "text/html; charset=UTF-8");
         // Send message
