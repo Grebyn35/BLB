@@ -620,7 +620,6 @@ public class UserController {
 
         if(finished != null){
             for(int i = 0; i<finished.length;i++){
-                System.out.println(finished[i]);
                 if(finished[i].contentEquals("true")){
                     finishedList.add(true);
                 }
@@ -631,7 +630,6 @@ public class UserController {
         }
         if(startedSending != null){
             for(int i = 0; i<startedSending.length;i++){
-                System.out.println(startedSending[i]);
                 if(startedSending[i].contentEquals("true")){
                     startedSendingList.add(true);
                 }
