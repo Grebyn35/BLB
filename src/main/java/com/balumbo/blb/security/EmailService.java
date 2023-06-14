@@ -83,7 +83,7 @@ public class EmailService {
             User user = userRepository.findById(mailLists.get(i).getUserId());
             if(!user.isError()){
                 if(isWithinWorkingHours()){
-                    //applicationEventPublisher.publishEvent(new HandleMailListEvent(mailLists.get(i)));
+                    applicationEventPublisher.publishEvent(new HandleMailListEvent(mailLists.get(i)));
                 }
             }
             else{
