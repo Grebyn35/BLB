@@ -350,6 +350,13 @@ public class UserController {
         long id = Long.parseLong(request.getParameter("id"));
         String date = request.getParameter("date");
         MailList mailList = mailListRepository.findById(id);
+        ArrayList<SequenceList> sequenceLists = sequenceListRepository.findByMailListId(mailList.getId());
+        for(int i = 0; i<sequenceLists.size();i++){
+            sequenceLists.get(i).setFinished(false);
+            sequenceLists.get(i).setStartedSending(false);
+            sequenceLists.get(i).setOngoing(false);
+        }
+        sequenceListRepository.saveAll(sequenceLists);
         mailList.setFinished(false);
         mailList.setOngoing(false);
         mailList.setDispatchDate(Date.valueOf(date));
@@ -473,7 +480,7 @@ public class UserController {
                         sequenceList.setMailListId(savedMailList.getId());
                         sequenceList.setTitle(titleSequenceList.get(i));
                         sequenceList.setMainContent(sequenceContentList.get(i));
-                        sequenceList.setSequenceStartDate(Date.valueOf(sequenceAfterList.get(i)));
+                        sequenceList.setSequenceAfterDays(Integer.parseInt(sequenceAfterList.get(i)));
                         sequenceList.setUserId(user.getId());
                         staticSequenceListRepository.save(sequenceList);
                     }
@@ -586,10 +593,14 @@ public class UserController {
         ArrayList<String> sequenceContentList = new ArrayList<>();
         ArrayList<String> sequenceAfterList = new ArrayList<>();
         ArrayList<String> titleSequenceList = new ArrayList<>();
+        ArrayList<Boolean> finishedList = new ArrayList<>();
+        ArrayList<Boolean> startedSendingList = new ArrayList<>();
 
         String[] sequenceContent = request.getParameterValues("sequenceContent[]");
         String[] sequenceAfter = request.getParameterValues("sequenceAfter[]");
         String[] titleSequence = request.getParameterValues("titleSequence[]");
+        String[] finished = request.getParameterValues("finished[]");
+        String[] startedSending = request.getParameterValues("startedSending[]");
 
         if(sequenceContent != null){
             for(int i = 0; i<sequenceContent.length;i++){
@@ -606,6 +617,29 @@ public class UserController {
                 titleSequenceList.add(titleSequence[i]);
             }
         }
+
+        if(finished != null){
+            for(int i = 0; i<finished.length;i++){
+                System.out.println(finished[i]);
+                if(finished[i].contentEquals("true")){
+                    finishedList.add(true);
+                }
+                else{
+                    finishedList.add(false);
+                }
+            }
+        }
+        if(startedSending != null){
+            for(int i = 0; i<startedSending.length;i++){
+                System.out.println(startedSending[i]);
+                if(startedSending[i].contentEquals("true")){
+                    startedSendingList.add(true);
+                }
+                else{
+                    startedSendingList.add(false);
+                }
+            }
+        }
         User user = returnCurrentUser();
         //MailList
         MailList mailList = mailListRepository.findById(id);
@@ -619,7 +653,9 @@ public class UserController {
         mailListRepository.save(mailList);
 
         ArrayList<SequenceList> oldSequenceLists = sequenceListRepository.findByMailListId(mailList.getId());
-        sequenceListRepository.deleteAll(oldSequenceLists);
+        for(int i = 0; i<oldSequenceLists.size();i++){
+            sequenceListRepository.delete(oldSequenceLists.get(i));
+        }
 
         ArrayList<SequenceList> newSequenceLists = new ArrayList<>();
         //SequenceList
@@ -627,8 +663,10 @@ public class UserController {
             SequenceList sequenceList = new SequenceList();
             sequenceList.setMailListId(mailList.getId());
             sequenceList.setTitle(titleSequenceList.get(i));
+            sequenceList.setFinished(finishedList.get(i));
+            sequenceList.setStartedSending(startedSendingList.get(i));
             sequenceList.setMainContent(sequenceContentList.get(i));
-            sequenceList.setSequenceStartDate(Date.valueOf(sequenceAfterList.get(i)));
+            sequenceList.setSequenceAfterDays(Integer.parseInt(sequenceAfterList.get(i)));
             sequenceList.setUserId(user.getId());
             newSequenceLists.add(sequenceList);
         }

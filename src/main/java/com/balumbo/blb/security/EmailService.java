@@ -1,14 +1,8 @@
 package com.balumbo.blb.security;
 
-import com.balumbo.blb.model.Blacklist;
-import com.balumbo.blb.model.MailList;
-import com.balumbo.blb.model.MailRow;
-import com.balumbo.blb.model.User;
+import com.balumbo.blb.model.*;
 import com.balumbo.blb.objects.DataRow;
-import com.balumbo.blb.repository.BlacklistRepository;
-import com.balumbo.blb.repository.MailListRepository;
-import com.balumbo.blb.repository.MailRowRepository;
-import com.balumbo.blb.repository.UserRepository;
+import com.balumbo.blb.repository.*;
 import com.opencsv.CSVParser;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
@@ -56,6 +50,9 @@ public class EmailService {
     private MailListRepository mailListRepository;
 
     @Autowired
+    private SequenceListRepository sequenceListRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -68,13 +65,18 @@ public class EmailService {
     public void resetOngoing(){
         System.out.println("starting up. Resetting ongoing on unfinished lists with date after current.");
         ArrayList<MailList> mailLists = mailListRepository.findAllByFinishedAndDispatchDateEqualOrBefore(false, java.sql.Date.valueOf(LocalDate.now()));
+        ArrayList<SequenceList> sequenceLists = sequenceListRepository.findAllByFinished(false);
         for(int i = 0; i<mailLists.size();i++){
             mailLists.get(i).setOngoing(false);
         }
+        for(int i = 0; i<sequenceLists.size();i++){
+            sequenceLists.get(i).setOngoing(false);
+        }
         mailListRepository.saveAll(mailLists);
+        sequenceListRepository.saveAll(sequenceLists);
     }
 
-    @Scheduled(fixedRate = 20000) // Check for changes in the mailList every 5 seconds
+    @Scheduled(fixedRate = 20000) // Check for changes in the mailList every 20 seconds
     public void sendEmails() {
         ArrayList<MailList> mailLists = mailListRepository.findAllByFinishedAndDispatchDateEqualOrBeforeAndOngoing(false, false, java.sql.Date.valueOf(LocalDate.now()));
         for(int i = 0; i<mailLists.size();i++){
@@ -82,6 +84,21 @@ public class EmailService {
             if(!user.isError()){
                 if(isWithinWorkingHours()){
                     //applicationEventPublisher.publishEvent(new HandleMailListEvent(mailLists.get(i)));
+                }
+            }
+            else{
+                System.out.println("List cannot sent, user " + user.getEmail() + " has errors");
+            }
+        }
+    }
+    @Scheduled(fixedRate = 10000) // Check for changes in the mailList every 5 seconds
+    public void sendSequences() {
+        ArrayList<SequenceList> sequenceLists = sequenceListRepository.findAllByOngoingAndFinished(false, false);
+        for(int i = 0; i<sequenceLists.size();i++){
+            User user = userRepository.findById(sequenceLists.get(i).getUserId());
+            if(!user.isError()){
+                if(isWithinWorkingHours()){
+                    applicationEventPublisher.publishEvent(new HandleSequenceEvent(sequenceLists.get(i)));
                 }
             }
             else{
@@ -140,11 +157,92 @@ public class EmailService {
                 return;
             }
         }
-        sendFinishedList(user, mailList);
+        sendFinishedList(user, mailList, false);
         System.out.println("Mail list complete. Setting finished.");
         mailList.setOngoing(false);
         mailList.setFinished(true);
         mailListRepository.save(mailList);
+    }
+    @Async
+    @EventListener
+    public void handleSequenceList(HandleSequenceEvent event) {
+        SequenceList sequenceList = event.getSequenceList();
+
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DATE, -sequenceList.getSequenceAfterDays()); // Subtract 10 days from the current date
+        java.sql.Date dateBeforeXDays = new java.sql.Date(cal.getTimeInMillis());
+
+        MailList mailList = mailListRepository.findById(sequenceList.getMailListId());
+        User user = userRepository.findById(sequenceList.getUserId());
+        ArrayList<Blacklist> blacklists = blacklistRepository.findAllByUserId(sequenceList.getUserId());
+        ArrayList<String> blackListEmails = new ArrayList<>();
+        for(int i = 0; i<blacklists.size();i++){
+            blackListEmails.add(blacklists.get(i).getEmail());
+        }
+        ArrayList<MailRow> mailRows;
+        if (blackListEmails.isEmpty()) {
+            mailRows = mailRowRepository.findByMailListIdAndErrorAndIsHeaderIsFalseAndSentDateEqualOrAfterXDays(mailList.getId(), false, dateBeforeXDays);
+        } else {
+            mailRows = mailRowRepository.findByMailListIdAndErrorAndIsHeaderIsFalseAndSentDateEqualOrAfterXDaysAndEmailNotIn(mailList.getId(), false, dateBeforeXDays, blackListEmails);
+        }
+
+        sequenceList.setOngoing(true);
+
+        ArrayList<MailRow> allMailRows = mailRowRepository.findByMailListId(mailList.getId());
+
+        boolean allSentForThisSequence = false;
+        if(allMailRows.size()>0) {
+            for (int i = 0; i < allMailRows.size(); i++) {
+                if (allMailRows.get(i).getSentDate() != null) {
+                    if (allMailRows.get(i).getSentDate().after(dateBeforeXDays) && sequenceList.isStartedSending()) {
+                        allSentForThisSequence = true;
+                    }
+                    else{
+                        allSentForThisSequence = false;
+                    }
+                }
+            }
+        }
+
+        if(mailRows.size()==0){
+            System.out.println("no emails to send to, all are too early");
+            sequenceList.setOngoing(false);
+            sequenceList.setFinished(allSentForThisSequence);
+        }
+        sequenceListRepository.save(sequenceList);
+
+        for(int i = 0; i<mailRows.size();i++){
+            user = userRepository.findById(user.getId()).get();
+            if(emailValidation(user)) {
+                if(isWithinWorkingHours()){
+                    //Lägg till en if sats som kollar om användaren har svarat inloggade personen
+                    try {
+                        sequenceList = sequenceListRepository.findById(sequenceList.getId()).get();
+                        sendSequenceEmail(mailRows.get(i), user, sequenceList, mailList);
+                        mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
+                        mailRowRepository.save(mailRows.get(i));
+                        sequenceList.setStartedSending(true);
+                        sequenceListRepository.save(sequenceList);
+                        Thread.sleep(mailList.getIntervalPeriod()*1000);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        mailRows.get(i).setError(true);
+                        mailRowRepository.save(mailRows.get(i));
+                    }
+                }
+                else{
+                    return;
+                }
+            }
+            else{
+                sequenceList.setOngoing(false);
+                sequenceListRepository.save(sequenceList);
+                sendErrorEmail(user);
+                return;
+            }
+        }
+        sequenceList.setOngoing(false);
+        sequenceListRepository.save(sequenceList);
     }
     public String returnDateWithTime(){
         java.util.Date date = new java.util.Date();
@@ -207,7 +305,7 @@ public class EmailService {
             e.printStackTrace();
         }
     }
-    public void sendFinishedList(User user, MailList mailList){
+    public void sendFinishedList(User user, MailList mailList, boolean isSequence){
         try{
             // Recipient's email ID needs to be mentioned.
             String to = user.getEmail();
@@ -248,9 +346,15 @@ public class EmailService {
 
             // Set Subject: header field
             message.setSubject(replacedTitle);
-
-            //Replace the content with variables
-            String replacedContent = "Utskicket '" + mailList.getFileName() + "' har slutförts.";
+            String replacedContent;
+            if(!isSequence){
+                //Replace the content with variables
+                replacedContent = "Utskicket '" + mailList.getFileName() + "' har slutförts.";
+            }
+            else{
+                //Replace the content with variables
+                replacedContent = "Sekvens för utskicket '" + mailList.getFileName() + "' har slutförts.";
+            }
 
             // Now set the actual message
             message.setContent(replacedContent, "text/html; charset=UTF-8");
@@ -355,6 +459,78 @@ public class EmailService {
 
         //Replace the content with variables
         String replacedContent = mailList.getMainContent();
+
+        String replacedFooter = mailList.getFooterContent();
+
+        for(int i = 0; i<variables.size();i++){
+            replacedContent = replacedContent.replaceAll("\\{" + variables.get(i).getName() + "}", values.get(variables.get(i).getIndex()).getName());
+        }
+
+        for(int i = 0; i<variables.size();i++){
+            replacedFooter = replacedFooter.replaceAll("\\{" + variables.get(i).getName() + "}", values.get(variables.get(i).getIndex()).getName());
+        }
+        String openedLink = "<img src=\""+ urlPath +"/track/" + mailRow.getId() + "\"width=\"1\" height=\"1\" border=\"0\" />";
+        replacedContent = replacedContent.replaceAll("\n", "<br>");
+        replacedFooter = replacedFooter.replaceAll("\n", "<br>");
+
+        // Now set the actual message
+        message.setContent(replacedContent + "<br><br>" + replacedFooter + " " +  openedLink, "text/html; charset=UTF-8");
+        // Send message
+        Transport.send(message);
+        System.out.println("Sent message successfully for user " + user.getEmail() + ". Interval=" + mailList.getIntervalPeriod() + "s");
+    }
+    public void sendSequenceEmail(MailRow mailRow, User user, SequenceList sequenceList, MailList mailList) throws MessagingException, IOException, CsvException {
+        // Recipient's email ID needs to be mentioned.
+        String to = mailRow.getEmail();
+
+        // Sender's email ID needs to be mentioned
+        String from = user.getMailEmail();
+        final String username = user.getMailEmail();
+        final String password = user.getMailPassword();
+
+        // Assuming you are sending email through relay.jangosmtp.net
+        String host = user.getMailHost();
+
+        Properties props = new Properties();
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", host);
+        props.put("mail.smtp.port", user.getMailPort());
+
+        // Get the Session object.
+        Session session = Session.getInstance(props,
+                new javax.mail.Authenticator() {
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(username, password);
+                    }
+                });
+        // Create a default MimeMessage object.
+        Message message = new MimeMessage(session);
+        // Set From: header field of the header.
+        message.setFrom(new InternetAddress(from, user.getMailAlias()));
+        // Set To: header field of the header.
+        message.setRecipients(Message.RecipientType.TO,
+                InternetAddress.parse(to));
+
+        //Replace the title with variables
+        Pageable pageableHeader = PageRequest.of(0, 1);
+
+        String replacedTitle = sequenceList.getTitle();
+        Page<MailRow> headerValues = mailRowRepository.findByMailListIdAndIsHeader(mailList.getId(), true, pageableHeader);
+        ArrayList<DataRow> variables = parseCSVRows(headerValues.getContent().get(0).getDataRow(), 0, mailList.getSeparatorValue(), true);
+
+        //Make a complete line
+
+        ArrayList<DataRow> values = parseCSVRows(mailRow.getDataRow(), 0, mailList.getSeparatorValue(), false);
+
+        for(int i = 0; i<variables.size();i++){
+            replacedTitle = replacedTitle.replaceAll("\\{" + variables.get(i).getName() + "}", values.get(variables.get(i).getIndex()).getName());
+        }
+        // Set Subject: header field
+        message.setSubject(replacedTitle);
+
+        //Replace the content with variables
+        String replacedContent = sequenceList.getMainContent();
 
         String replacedFooter = mailList.getFooterContent();
 

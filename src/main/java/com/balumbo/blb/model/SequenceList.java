@@ -20,8 +20,10 @@ public class SequenceList implements Serializable {
     private String mainContent;
     @Column(length=200000000,columnDefinition="LONGTEXT")
     private String title;
-    private Date sequenceStartDate;
+    private int sequenceAfterDays;
     private long userId;
+    private boolean ongoing;
+    private boolean startedSending;
     private boolean finished;
 
 }

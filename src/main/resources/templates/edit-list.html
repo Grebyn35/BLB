@@ -203,12 +203,14 @@
                             <div class="col-xl-6">
                                 <div class="w-100"></div>
                                 <textarea name="sequenceContent[]" style="display: none" cols="30" rows="10"></textarea>
+                                <input type="text" th:value="${sequence.finished}" name="finished[]" style="display: none">
+                                <input type="text" th:value="${sequence.startedSending}" name="startedSending[]" style="display: none">
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label>Sekvens startdatum (utan svar från första utskick)</label>
-                                <input th:value="${sequence.sequenceStartDate}" name="sequenceAfter[]" required class="form-control" type="date">
+                                <label>Sekvens efter dagar utan svar (från föregående utskick)</label>
+                                <input th:value="${sequence.sequenceAfterDays}" name="sequenceAfter[]" required class="form-control" type="number">
                             </div>
                             <div class="col-md-6 mb-3 d-flex align-items-end">
                                 <button class="btn btn-danger btn-sm mt-4" onclick="removeSequence(this)">Ta bort sekvens</button>
@@ -304,6 +306,7 @@
             text = e.innerHTML
         }
 
+        let textBeforeReplaced = text
         for(let i = 0; i<headers.length;i++){
             var pattern = "{" + headers[i].name + "}";
             var regex = new RegExp(pattern, 'g');
@@ -312,7 +315,7 @@
         if(sibling.tagName == "DIV"){
             //let htmlText = text.replace(/\n/g, '<br>'); // Replace newline characters with <br> tags
             sibling.innerHTML = text;
-            sibling.nextElementSibling.textContent = text;
+            sibling.nextElementSibling.textContent = textBeforeReplaced;
         }
         else{
             sibling.value = text;
@@ -324,7 +327,7 @@
         if(sibling.tagName == "DIV"){
             text = e.innerHTML
         }
-
+        let textBeforeReplaced = text
         for(let i = 0; i<headers.length;i++){
             var pattern = "{" + headers[i].name + "}";
             var regex = new RegExp(pattern, 'g');
@@ -333,7 +336,7 @@
         if(sibling.tagName == "DIV"){
             //let htmlText = text.replace(/\n/g, '<br>'); // Replace newline characters with <br> tags
             sibling.innerHTML = text;
-            sibling.nextElementSibling.textContent = text;
+            sibling.nextElementSibling.textContent = textBeforeReplaced;
         }
         else{
             sibling.value = text;
