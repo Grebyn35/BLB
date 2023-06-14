@@ -144,8 +144,8 @@
                         <input name="date" id="dateInput" required class="form-control" type="date">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label" for="interval">Interval (ms)</label>
-                        <input name="interval" id="interval" value="60000" required class="form-control" type="number">
+                        <label class="form-label" for="interval">Interval (s)</label>
+                        <input name="interval" id="interval" required class="form-control" type="text">
                     </div>
                     <div class="mb-3 d-flex flex-wrap">
                         <label class="form-label me-3" for="variable">Tillgängliga variabler:</label>
@@ -164,21 +164,23 @@
                     <div class="row">
                         <div class="col-xl-6">
                             <label>Huvud innehåll</label>
-                            <div oninput="mirrorText(this)" contenteditable="true" type="text/html; charset=utf-8" required name="mainContent" class="w-100 form-control content" cols="30" rows="10"></div>
+                            <div oninput="mirrorText(this)" contenteditable="true" type="text/html; charset=utf-8" required class="w-100 form-control content" cols="30" rows="10"></div>
                         </div>
                         <div class="col-xl-6">
                             <label></label>
                             <div class="w-100"></div>
+                            <textarea name="mainContent" style="display: none" cols="30" rows="10"></textarea>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-xl-6">
                             <label>Footer innehåll</label>
-                            <div oninput="mirrorText(this)" contenteditable="true" type="text/html; charset=utf-8" name="footerContent" class="w-100 form-control content" cols="30" rows="10"></div>
+                            <div oninput="mirrorText(this)" contenteditable="true" type="text/html; charset=utf-8" class="w-100 form-control content" cols="30" rows="10"></div>
                         </div>
                         <div class="col-xl-6">
                             <label></label>
                             <div class="w-100"></div>
+                            <textarea name="footerContent" style="display: none" cols="30" rows="10"></textarea>
                         </div>
                     </div>
                     <!--This is to add a sequence placeholder-->
@@ -206,10 +208,11 @@
         </div>
         <div class="row">
             <div class="col-xl-6">
-                <div oninput="mirrorTextSequence(this)" contenteditable="true" type="text/html; charset=utf-8" required name="sequenceContent[]" class="w-100 form-control content" cols="30" rows="10"></div>
+                <div oninput="mirrorTextSequence(this)" contenteditable="true" type="text/html; charset=utf-8" required class="w-100 form-control content" cols="30" rows="10"></div>
             </div>
             <div class="col-xl-6">
                 <div class="w-100"></div>
+                <textarea name="sequenceContent[]" style="display: none" cols="30" rows="10"></textarea>
             </div>
         </div>
         <div class="row">
@@ -266,6 +269,7 @@
         if(sibling.tagName == "DIV"){
             //let htmlText = text.replace(/\n/g, '<br>'); // Replace newline characters with <br> tags
             sibling.innerHTML = text;
+            sibling.nextElementSibling.textContent = text;
         }
         else{
             sibling.value = text;
@@ -286,6 +290,7 @@
         if(sibling.tagName == "DIV"){
             //let htmlText = text.replace(/\n/g, '<br>'); // Replace newline characters with <br> tags
             sibling.innerHTML = text;
+            sibling.nextElementSibling.textContent = text;
         }
         else{
             sibling.value = text;

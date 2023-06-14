@@ -7,6 +7,7 @@ import com.balumbo.blb.objects.DataRow;
 import com.balumbo.blb.objects.HeaderValues;
 import com.balumbo.blb.repository.*;
 import com.balumbo.blb.security.CustomUserDetails;
+import com.balumbo.blb.security.EmailService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opencsv.CSVParser;
@@ -406,7 +407,6 @@ public class UserController {
     }
     @PostMapping("/user/upload-list/complete")
     public String uploadListComplete(Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) throws CsvException, IOException {
-
         //Save the rows in a new thread so the user does not have to wait
         User user = returnCurrentUser();
         new Thread(asyncSaveRows(user, request)).start();
@@ -418,101 +418,166 @@ public class UserController {
         return new Runnable() {
             @SneakyThrows
             public void run() {
-                String fileName = request.getParameter("name");
-                String dispatchDate = request.getParameter("date");
-                String mainContent = request.getParameter("mainContent");
-                String footerContent = request.getParameter("footerContent");
-                String title = request.getParameter("title");
-                String completeData = request.getParameter("completeData");
-                String interval = request.getParameter("interval");
-                String separator = request.getParameter("separator");
+                try{
+                    String fileName = request.getParameter("name");
+                    String dispatchDate = request.getParameter("date");
+                    String mainContent = request.getParameter("mainContent");
+                    String footerContent = request.getParameter("footerContent");
+                    String title = request.getParameter("title");
+                    String completeData = request.getParameter("completeData");
+                    String interval = request.getParameter("interval");
+                    String separator = request.getParameter("separator");
 
-                //Lists to split the data
-                ArrayList<String> sequenceContentList = new ArrayList<>();
-                ArrayList<String> sequenceAfterList = new ArrayList<>();
-                ArrayList<String> titleSequenceList = new ArrayList<>();
+                    //Lists to split the data
+                    ArrayList<String> sequenceContentList = new ArrayList<>();
+                    ArrayList<String> sequenceAfterList = new ArrayList<>();
+                    ArrayList<String> titleSequenceList = new ArrayList<>();
 
-                //List of actual objects
-                MailList mailList = new MailList();
+                    //List of actual objects
+                    MailList mailList = new MailList();
 
-                String[] sequenceContent = request.getParameterValues("sequenceContent[]");
-                String[] sequenceAfter = request.getParameterValues("sequenceAfter[]");
-                String[] titleSequence = request.getParameterValues("titleSequence[]");
+                    String[] sequenceContent = request.getParameterValues("sequenceContent[]");
+                    String[] sequenceAfter = request.getParameterValues("sequenceAfter[]");
+                    String[] titleSequence = request.getParameterValues("titleSequence[]");
 
-                if(sequenceContent != null){
-                    for(int i = 0; i<sequenceContent.length;i++){
-                        sequenceContentList.add(sequenceContent[i]);
-                    }
-                }
-                if(sequenceAfter != null){
-                    for(int i = 0; i<sequenceAfter.length;i++){
-                        sequenceAfterList.add(sequenceAfter[i]);
-                    }
-                }
-                if(titleSequence != null){
-                    for(int i = 0; i<titleSequence.length;i++){
-                        titleSequenceList.add(titleSequence[i]);
-                    }
-                }
-                //MailList
-                mailList.setFileName(fileName);
-                mailList.setSeparatorValue(separator);
-                System.out.println(interval);
-                mailList.setIntervalPeriod(Integer.parseInt(interval));
-                mailList.setFooterContent(footerContent);
-                mailList.setDispatchDate(Date.valueOf(dispatchDate));
-                mailList.setMainContent(mainContent);
-                mailList.setTitle(title);
-                mailList.setUserId(user.getId());
-                MailList savedMailList = staticMailListRepository.save(mailList);
-
-                //SequenceList
-                for(int i = 0; i<sequenceContentList.size();i++){
-                    SequenceList sequenceList = new SequenceList();
-                    sequenceList.setMailListId(savedMailList.getId());
-                    sequenceList.setTitle(titleSequenceList.get(i));
-                    sequenceList.setMainContent(sequenceContentList.get(i));
-                    sequenceList.setSequenceStartDate(Date.valueOf(sequenceAfterList.get(i)));
-                    sequenceList.setUserId(user.getId());
-                    staticSequenceListRepository.save(sequenceList);
-                }
-
-                //MailRow
-                CSVReader reader = new CSVReaderBuilder(
-                        new StringReader(completeData))
-                        .withSkipLines(0)
-                        .build();
-
-                List<String[]> r = reader.readAll();
-                for(int i = 0; i<r.size();i++){
-                    String csvLine = String.join(mailList.getSeparatorValue(), r.get(i));
-                    MailRow mailRow = new MailRow();
-                    mailRow.setDataRow(csvLine);
-                    mailRow.setUserId(user.getId());
-                    mailRow.setMailListId(mailList.getId());
-
-                    if(i==0){
-                        mailRow.setHeader(true);
-                    }
-                    else{
-                        //Determine email adress
-                        String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
-                        Pattern pattern = Pattern.compile(emailRegex);
-                        ArrayList<DataRow> dataRowEmail = parseCSVRows(csvLine, 0, mailList.getSeparatorValue(), false);
-                        for(int c = 0; c<dataRowEmail.size();c++){
-                            if(pattern.matcher(dataRowEmail.get(c).getName()).matches()){
-                                mailRow.setEmail(dataRowEmail.get(c).getName());
-                                break;
-                            }
+                    if(sequenceContent != null){
+                        for(int i = 0; i<sequenceContent.length;i++){
+                            sequenceContentList.add(sequenceContent[i]);
                         }
                     }
-                    staticMailRowRepository.save(mailRow);
+                    if(sequenceAfter != null){
+                        for(int i = 0; i<sequenceAfter.length;i++){
+                            sequenceAfterList.add(sequenceAfter[i]);
+                        }
+                    }
+                    if(titleSequence != null){
+                        for(int i = 0; i<titleSequence.length;i++){
+                            titleSequenceList.add(titleSequence[i]);
+                        }
+                    }
+                    //MailList
+                    mailList.setFileName(fileName);
+                    mailList.setSeparatorValue(separator);
+                    if(interval==null){
+                        mailList.setIntervalPeriod(60);
+                    }
+                    else{
+                        mailList.setIntervalPeriod(Integer.parseInt(interval));
+                    }
+                    mailList.setFooterContent(footerContent);
+                    System.out.println(dispatchDate);
+                    mailList.setDispatchDate(Date.valueOf(dispatchDate));
+                    mailList.setMainContent(mainContent);
+                    mailList.setTitle(title);
+                    mailList.setUserId(user.getId());
+                    MailList savedMailList = staticMailListRepository.save(mailList);
+
+                    //SequenceList
+                    for(int i = 0; i<sequenceContentList.size();i++){
+                        SequenceList sequenceList = new SequenceList();
+                        sequenceList.setMailListId(savedMailList.getId());
+                        sequenceList.setTitle(titleSequenceList.get(i));
+                        sequenceList.setMainContent(sequenceContentList.get(i));
+                        sequenceList.setSequenceStartDate(Date.valueOf(sequenceAfterList.get(i)));
+                        sequenceList.setUserId(user.getId());
+                        staticSequenceListRepository.save(sequenceList);
+                    }
+
+                    //MailRow
+                    CSVReader reader = new CSVReaderBuilder(
+                            new StringReader(completeData))
+                            .withSkipLines(0)
+                            .build();
+
+                    List<String[]> r = reader.readAll();
+                    for(int i = 0; i<r.size();i++){
+                        System.out.println(i + "/" + r.size());
+                        String csvLine = String.join(mailList.getSeparatorValue(), r.get(i));
+                        MailRow mailRow = new MailRow();
+                        mailRow.setDataRow(csvLine);
+                        mailRow.setUserId(user.getId());
+                        mailRow.setMailListId(mailList.getId());
+
+                        if(i==0){
+                            mailRow.setHeader(true);
+                        }
+                        else{
+                            //Determine email adress
+                            String emailRegex = "^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$";
+                            Pattern pattern = Pattern.compile(emailRegex);
+                            ArrayList<DataRow> dataRowEmail = parseCSVRows(csvLine, 0, mailList.getSeparatorValue(), false);
+                            for(int c = 0; c<dataRowEmail.size();c++){
+                                if(pattern.matcher(dataRowEmail.get(c).getName()).matches()){
+                                    mailRow.setEmail(dataRowEmail.get(c).getName());
+                                    break;
+                                }
+                            }
+                        }
+                        staticMailRowRepository.save(mailRow);
+                    }
+                    System.out.println("finished uploading list");
+                    mailList.setFinishedUploading(true);
+                    staticMailListRepository.save(mailList);
+                }catch (Exception e){
+                    e.printStackTrace();
+                    System.out.println("error uploading list, sending email to user");
+                    sendErrorUploadingList(user, e);
                 }
-                System.out.println("finished uploading list");
-                mailList.setFinishedUploading(true);
-                staticMailListRepository.save(mailList);
             }
         };
+    }
+    public void sendErrorUploadingList(User user, Exception error){
+        try{
+            // Recipient's email ID needs to be mentioned.
+            String to = user.getEmail();
+
+            // Sender's email ID needs to be mentioned
+            String from = user.getMailEmail();
+            final String username = user.getMailEmail();
+            final String password = user.getMailPassword();
+
+            // Assuming you are sending email through relay.jangosmtp.net
+            String host = user.getMailHost();
+
+            Properties props = new Properties();
+            props.put("mail.smtp.auth", "true");
+            props.put("mail.smtp.starttls.enable", "true");
+            props.put("mail.smtp.host", host);
+            props.put("mail.smtp.port", user.getMailPort());
+
+            // Get the Session object.
+            Session session = Session.getInstance(props,
+                    new javax.mail.Authenticator() {
+                        protected PasswordAuthentication getPasswordAuthentication() {
+                            return new PasswordAuthentication(username, password);
+                        }
+                    });
+            // Create a default MimeMessage object.
+            Message message = new MimeMessage(session);
+            // Set From: header field of the header.
+            message.setFrom(new InternetAddress(from, user.getMailAlias()));
+            // Set To: header field of the header.
+            message.setRecipients(Message.RecipientType.TO,
+                    InternetAddress.parse(to));
+
+            //Replace the title with variables
+            Pageable pageableHeader = PageRequest.of(0, 1);
+
+            String replacedTitle = "Fel vid uppladdning av lista";
+
+            // Set Subject: header field
+            message.setSubject(replacedTitle);
+
+            //Replace the content with variables
+            String replacedContent = "Det uppstod ett fel vid uppladdningen av din lista, kontakta Elliot.\nVisa error: " + error.getMessage();
+
+            // Now set the actual message
+            message.setContent(replacedContent, "text/html; charset=UTF-8");
+            // Send message
+            Transport.send(message);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
     @PostMapping("/user/edit-list/{id}")
     public String editListComplete(Model model, HttpServletRequest request, @PathVariable long id) throws CsvException, IOException {

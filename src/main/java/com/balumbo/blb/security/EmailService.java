@@ -122,7 +122,7 @@ public class EmailService {
                         mailRows.get(i).setSent(true);
                         mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
                         mailRowRepository.save(mailRows.get(i));
-                        Thread.sleep(mailList.getIntervalPeriod());
+                        Thread.sleep(mailList.getIntervalPeriod()*1000);
                     } catch (Exception e) {
                         e.printStackTrace();
                         mailRows.get(i).setError(true);
@@ -373,7 +373,7 @@ public class EmailService {
         message.setContent(replacedContent + "<br><br>" + replacedFooter + " " +  openedLink, "text/html; charset=UTF-8");
         // Send message
         Transport.send(message);
-        System.out.println("Sent message successfully for user " + user.getEmail() + ". Interval=" + mailList.getIntervalPeriod() + "ms");
+        System.out.println("Sent message successfully for user " + user.getEmail() + ". Interval=" + mailList.getIntervalPeriod() + "s");
     }
     public ArrayList<DataRow> parseCSVRows(String completeData, int skipLines, String separator, boolean isHeader) throws IOException, CsvException {
         CSVParser csvParser = new CSVParserBuilder().withSeparator(separator.charAt(0)).build(); // custom separator
