@@ -406,26 +406,27 @@ public class UserController {
         return "list-content";
     }
     @PostMapping("/user/upload-list/complete")
-    public String uploadListComplete(Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) throws CsvException, IOException {
+    public String uploadListComplete(Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
         //Save the rows in a new thread so the user does not have to wait
         User user = returnCurrentUser();
-        new Thread(asyncSaveRows(user, request)).start();
+        //Dessa ligger här bara för att annars blev värdet null i metoden "asyncSaveRows" (???)
+        String dispatchDate = request.getParameter("date");
+        String interval = request.getParameter("interval");
+        new Thread(asyncSaveRows(user, request, dispatchDate, interval)).start();
 
         redirectAttributes.addFlashAttribute("uploaded", true);
         return "redirect:/user/dashboard";
     }
-    public Runnable asyncSaveRows(User user, HttpServletRequest request){
+    public Runnable asyncSaveRows(User user, HttpServletRequest request, String dispatchDate, String interval){
         return new Runnable() {
             @SneakyThrows
             public void run() {
                 try{
                     String fileName = request.getParameter("name");
-                    String dispatchDate = request.getParameter("date");
                     String mainContent = request.getParameter("mainContent");
                     String footerContent = request.getParameter("footerContent");
                     String title = request.getParameter("title");
                     String completeData = request.getParameter("completeData");
-                    String interval = request.getParameter("interval");
                     String separator = request.getParameter("separator");
 
                     //Lists to split the data
@@ -458,14 +459,8 @@ public class UserController {
                     //MailList
                     mailList.setFileName(fileName);
                     mailList.setSeparatorValue(separator);
-                    if(interval==null){
-                        mailList.setIntervalPeriod(60);
-                    }
-                    else{
-                        mailList.setIntervalPeriod(Integer.parseInt(interval));
-                    }
+                    mailList.setIntervalPeriod(Integer.parseInt(interval));
                     mailList.setFooterContent(footerContent);
-                    System.out.println(dispatchDate);
                     mailList.setDispatchDate(Date.valueOf(dispatchDate));
                     mailList.setMainContent(mainContent);
                     mailList.setTitle(title);
