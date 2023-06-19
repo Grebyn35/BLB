@@ -123,12 +123,34 @@ public class EmailService {
         } else {
             mailRows = mailRowRepository.findByMailListIdAndSentAndErrorAndIsHeaderIsFalseAndEmailNotIn(mailList.getId(), false, false, blackListEmails);
         }
+
+        ArrayList<MailRow> allMailRows = mailRowRepository.findByMailListIdAndErrorIsFalse(mailList.getId());
+
+        boolean allSentForThisSequence = false;
+        if(allMailRows.size()>0) {
+            for (int i = 0; i < allMailRows.size(); i++) {
+                if (allMailRows.get(i).getSentDate() == null) {
+                    allSentForThisSequence = false;
+                    break;
+                }
+                else{
+                    allSentForThisSequence = true;
+                }
+            }
+        }
+
         mailList.setOngoing(true);
         if(mailRows.size()==0){
-            mailList.setOngoing(false);
-            mailList.setFinished(true);
+            System.out.println("no emails to send to, all are too early");
+            mailList.setFinished(allSentForThisSequence);
+            if(allSentForThisSequence){
+                mailList.setOngoing(false);
+                sendFinishedList(user, mailList, false);
+                System.out.println("Mail list complete. Setting finished.");
+            }
         }
         mailListRepository.save(mailList);
+
         for(int i = 0; i<mailRows.size();i++){
             user = userRepository.findById(user.getId()).get();
             if(emailValidation(user)) {
@@ -157,10 +179,7 @@ public class EmailService {
                 return;
             }
         }
-        sendFinishedList(user, mailList, false);
-        System.out.println("Mail list complete. Setting finished.");
         mailList.setOngoing(false);
-        mailList.setFinished(true);
         mailListRepository.save(mailList);
     }
     @Async
