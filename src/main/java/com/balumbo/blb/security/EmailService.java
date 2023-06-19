@@ -130,9 +130,6 @@ public class EmailService {
         if(allMailRows.size()==0) {
             allSentForThisSequence = true;
         }
-        else{
-            allSentForThisSequence = false;
-        }
 
         mailList.setOngoing(true);
         if(mailRows.size()==0){
@@ -387,7 +384,7 @@ public class EmailService {
         }
 
         LocalTime startOfWorkDay = LocalTime.of(8, 0);
-        LocalTime endOfWorkDay = LocalTime.of(18, 0);
+        LocalTime endOfWorkDay = LocalTime.of(17, 0);
         return !time.isBefore(startOfWorkDay) && !time.isAfter(endOfWorkDay);
     }
     public boolean emailValidation(User user) {
