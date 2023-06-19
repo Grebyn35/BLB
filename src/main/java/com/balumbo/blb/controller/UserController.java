@@ -248,18 +248,18 @@ public class UserController {
             }
         }
         if(hasHeader){
-            String headerRow = mailRows.get(0).getDataRow() + "," + "Öppnad" + "," + "Tid Öppnad" + "," + "Gånger Öppnade" + "," + "Fel Vid Utskick" + "," + "Datum Skickad";
+            String headerRow = mailRows.get(0).getDataRow() + "," + "Öppnad" + "," + "Tid Öppnad" + "," + "Gånger Öppnade" + "," + "Fel Vid Utskick" + "," + "Datum Skickad" + "," + "Skickad";
             outputStream.write(headerRow.getBytes());
             outputStream.write("\n".getBytes());
             for (int i = 1; i < mailRows.size(); i++) {
-                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened() + "," + mailRows.get(i).isError() + "," + mailRows.get(i).getSentDate();
+                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened() + "," + mailRows.get(i).isError() + "," + mailRows.get(i).getSentDate() + "," + mailRows.get(i).isSent();
                 outputStream.write(row.getBytes());
                 outputStream.write("\n".getBytes());
             }
         }
         else{
             for (int i = 0; i < mailRows.size(); i++) {
-                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened() + "," + mailRows.get(i).isError() + "," + mailRows.get(i).getSentDate();
+                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened() + "," + mailRows.get(i).isError() + "," + mailRows.get(i).getSentDate() + "," + mailRows.get(i).isSent();
                 outputStream.write(row.getBytes());
                 outputStream.write("\n".getBytes());
             }
@@ -287,18 +287,18 @@ public class UserController {
             }
         }
         if(hasHeader){
-            String headerRow = mailRows.get(0).getDataRow() + "," + "Öppnad" + "," + "Tid Öppnad" + "," + "Gånger Öppnade" + "," + "Fel Vid Utskick" + "," + "Datum Skickad";
+            String headerRow = mailRows.get(0).getDataRow() + "," + "Öppnad" + "," + "Tid Öppnad" + "," + "Gånger Öppnade" + "," + "Fel Vid Utskick" + "," + "Datum Skickad" + "," + "Skickad";
             outputStream.write(headerRow.getBytes());
             outputStream.write("\n".getBytes());
             for (int i = 1; i < mailRows.size(); i++) {
-                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened() + "," + mailRows.get(i).isError() + "," + mailRows.get(i).getSentDate();
+                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened() + "," + mailRows.get(i).isError() + "," + mailRows.get(i).getSentDate() + "," + mailRows.get(i).isSent();
                 outputStream.write(row.getBytes());
                 outputStream.write("\n".getBytes());
             }
         }
         else{
             for (int i = 0; i < mailRows.size(); i++) {
-                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened() + "," + mailRows.get(i).isError() + "," + mailRows.get(i).getSentDate();
+                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened() + "," + mailRows.get(i).isError() + "," + mailRows.get(i).getSentDate() + "," + mailRows.get(i).isSent();
                 outputStream.write(row.getBytes());
                 outputStream.write("\n".getBytes());
             }
