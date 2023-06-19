@@ -248,7 +248,7 @@ public class UserController {
             }
         }
         if(hasHeader){
-            String headerRow = mailRows.get(0).getDataRow() + "," + "Öppnad" + "," + "TidÖppnad" + "," + "gångerÖppnade" + "," + "felVidUtskick";
+            String headerRow = mailRows.get(0).getDataRow() + "," + "Öppnad" + "," + "Tid Öppnad" + "," + "Gånger Öppnade" + "," + "Fel Vid Utskick" + "," + "Datum Skickad";
             outputStream.write(headerRow.getBytes());
             outputStream.write("\n".getBytes());
             for (int i = 1; i < mailRows.size(); i++) {
@@ -287,7 +287,7 @@ public class UserController {
             }
         }
         if(hasHeader){
-            String headerRow = mailRows.get(0).getDataRow() + "," + "Öppnad" + "," + "TidÖppnad" + "," + "gångerÖppnade" + "," + "felVidUtskick";
+            String headerRow = mailRows.get(0).getDataRow() + "," + "Öppnad" + "," + "Tid Öppnad" + "," + "Gånger Öppnade" + "," + "Fel Vid Utskick" + "," + "Datum Skickad";
             outputStream.write(headerRow.getBytes());
             outputStream.write("\n".getBytes());
             for (int i = 1; i < mailRows.size(); i++) {
