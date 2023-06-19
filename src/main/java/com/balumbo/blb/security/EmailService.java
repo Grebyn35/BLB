@@ -124,24 +124,18 @@ public class EmailService {
             mailRows = mailRowRepository.findByMailListIdAndSentAndErrorAndIsHeaderIsFalseAndEmailNotIn(mailList.getId(), false, false, blackListEmails);
         }
 
-        ArrayList<MailRow> allMailRows = mailRowRepository.findByMailListIdAndErrorIsFalse(mailList.getId());
+        ArrayList<MailRow> allMailRows = mailRowRepository.findByMailListIdAndErrorIsFalseAndSentIsNull(mailList.getId());
 
         boolean allSentForThisSequence = false;
-        if(allMailRows.size()>0) {
-            for (int i = 0; i < allMailRows.size(); i++) {
-                if (allMailRows.get(i).getSentDate() == null) {
-                    allSentForThisSequence = false;
-                    break;
-                }
-                else{
-                    allSentForThisSequence = true;
-                }
-            }
+        if(allMailRows.size()==0) {
+            allSentForThisSequence = true;
+        }
+        else{
+            allSentForThisSequence = false;
         }
 
         mailList.setOngoing(true);
         if(mailRows.size()==0){
-            System.out.println("no emails to send to, all are too early");
             mailList.setFinished(allSentForThisSequence);
             if(allSentForThisSequence){
                 mailList.setOngoing(false);
