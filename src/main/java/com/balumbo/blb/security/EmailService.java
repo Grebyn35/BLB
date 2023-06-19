@@ -374,7 +374,7 @@ public class EmailService {
         }
 
         LocalTime startOfWorkDay = LocalTime.of(8, 0);
-        LocalTime endOfWorkDay = LocalTime.of(17, 0);
+        LocalTime endOfWorkDay = LocalTime.of(18, 0);
         return !time.isBefore(startOfWorkDay) && !time.isAfter(endOfWorkDay);
     }
     public boolean emailValidation(User user) {
