@@ -291,14 +291,14 @@ public class UserController {
             outputStream.write(headerRow.getBytes());
             outputStream.write("\n".getBytes());
             for (int i = 1; i < mailRows.size(); i++) {
-                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened() + "," + mailRows.get(i).isError();
+                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened() + "," + mailRows.get(i).isError() + "," + mailRows.get(i).getSentDate();
                 outputStream.write(row.getBytes());
                 outputStream.write("\n".getBytes());
             }
         }
         else{
             for (int i = 0; i < mailRows.size(); i++) {
-                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened() + "," + mailRows.get(i).isError();
+                String row = mailRows.get(i).getDataRow() + "," + mailRows.get(i).isOpened() + "," + mailRows.get(i).getTimeOpened() + "," + mailRows.get(i).getTimesOpened() + "," + mailRows.get(i).isError() + "," + mailRows.get(i).getSentDate();
                 outputStream.write(row.getBytes());
                 outputStream.write("\n".getBytes());
             }
