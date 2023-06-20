@@ -241,6 +241,11 @@ public class EmailService {
                             return;
                         }
                         try {
+                            //Kollar om man stäng av den så stängs threaden
+                            if(!sequenceList.isOngoing()){
+                                System.out.println("thread cancelled. shutting down running thread.");
+                                return;
+                            }
                             sendSequenceEmail(mailRows.get(i), user, sequenceList, mailList);
                             mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
                             mailRowRepository.save(mailRows.get(i));
