@@ -235,8 +235,12 @@ public class EmailService {
             if(emailValidation(user)) {
                 if(isWithinWorkingHours()){
                     if(checkIfResponse(user, mailRows.get(i))){
-                        try {
+                        try{
                             sequenceList = sequenceListRepository.findById(sequenceList.getId()).get();
+                        }catch (Exception e){
+                            return;
+                        }
+                        try {
                             sendSequenceEmail(mailRows.get(i), user, sequenceList, mailList);
                             mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
                             mailRowRepository.save(mailRows.get(i));
