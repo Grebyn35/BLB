@@ -81,7 +81,7 @@ public class EmailService {
             User user = userRepository.findById(mailLists.get(i).getUserId());
             if(!user.isError()){
                 if(isWithinWorkingHours()){
-                    //applicationEventPublisher.publishEvent(new HandleMailListEvent(mailLists.get(i)));
+                    applicationEventPublisher.publishEvent(new HandleMailListEvent(mailLists.get(i)));
                 }
             }
             else{
@@ -108,6 +108,7 @@ public class EmailService {
     @Async
     @EventListener
     public void handleMailList(HandleMailListEvent event) {
+        System.out.println("new maillist activating");
         MailList mailList = event.getMailList();
         User user = userRepository.findById(mailList.getUserId());
         ArrayList<Blacklist> blacklists = blacklistRepository.findAllByUserId(mailList.getUserId());
@@ -145,17 +146,16 @@ public class EmailService {
             if(emailValidation(user)) {
                 if(isWithinWorkingHours()){
                     try {
-                        mailList = mailListRepository.findById(mailList.getId()).get();
-                        sendEmail(mailRows.get(i), user, mailList);
-                        mailRows.get(i).setSent(true);
-                        mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
-                        mailRowRepository.save(mailRows.get(i));
+                        //mailList = mailListRepository.findById(mailList.getId()).get();
+                        //sendEmail(mailRows.get(i), user, mailList);
+                        //mailRows.get(i).setSent(true);
+                        //mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
+                        //mailRowRepository.save(mailRows.get(i));
                         Thread.sleep(mailList.getIntervalPeriod()*1000);
                     } catch (Exception e) {
                         e.printStackTrace();
-                        mailRows.get(i).setError(true);
-                        mailRows.get(i).setSent(true);
-                        mailRowRepository.save(mailRows.get(i));
+                        //mailRows.get(i).setError(true);
+                        //mailRowRepository.save(mailRows.get(i));
                     }
                 }
                 else{
@@ -223,21 +223,22 @@ public class EmailService {
         for(int i = 0; i<mailRows.size();i++){
             user = userRepository.findById(user.getId()).get();
             if(emailValidation(user)) {
-                if(isWithinWorkingHours() && checkIfResponse(user, mailRows.get(i))){
-                    //Lägg till en if sats som kollar om användaren har svarat inloggade personen
-                    //try {
-                    //    sequenceList = sequenceListRepository.findById(sequenceList.getId()).get();
-                    //    sendSequenceEmail(mailRows.get(i), user, sequenceList, mailList);
-                    //    mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
-                    //    mailRowRepository.save(mailRows.get(i));
-                    //    sequenceList.setStartedSending(true);
-                    //    sequenceListRepository.save(sequenceList);
-                    //    Thread.sleep(mailList.getIntervalPeriod()*1000);
-                    //} catch (Exception e) {
-                    //    e.printStackTrace();
-                    //    mailRows.get(i).setError(true);
-                    //    mailRowRepository.save(mailRows.get(i));
-                    //}
+                if(isWithinWorkingHours()){
+                    if(checkIfResponse(user, mailRows.get(i))){
+                        try {
+                            sequenceList = sequenceListRepository.findById(sequenceList.getId()).get();
+                            sendSequenceEmail(mailRows.get(i), user, sequenceList, mailList);
+                            mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
+                            mailRowRepository.save(mailRows.get(i));
+                            sequenceList.setStartedSending(true);
+                            sequenceListRepository.save(sequenceList);
+                            Thread.sleep(mailList.getIntervalPeriod()*1000);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            mailRows.get(i).setError(true);
+                            mailRowRepository.save(mailRows.get(i));
+                        }
+                    }
                 }
                 else{
                     return;
@@ -615,14 +616,7 @@ public class EmailService {
                     // Normalize dates to ignore time components
                     LocalDate receivedLocalDate = receivedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
                     LocalDate sentLocalDate = sentDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-
                     if(receivedLocalDate.isAfter(sentLocalDate) || receivedLocalDate.isEqual(sentLocalDate)) {
-                        System.out.println("-----------------------------------");
-                        System.out.println(mailRow);
-                        System.out.println("RECIEVED AFTER SENDING. Date recieved: " + receivedLocalDate + ", date sent: " + sentLocalDate);
-                        System.out.println("Email #" + i);
-                        System.out.println("From: " + extractEmail(message.getFrom()));
-                        System.out.println("Received Date : " + message.getSentDate());
                         return true;
                     }
                     return false;
