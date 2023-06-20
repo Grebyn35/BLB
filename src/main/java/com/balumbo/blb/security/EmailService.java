@@ -487,7 +487,7 @@ public class EmailService {
         message.setContent(replacedContent + "<br><br>" + replacedFooter + " " +  openedLink, "text/html; charset=UTF-8");
         // Send message
         Transport.send(message);
-        System.out.println("Sent message successfully for user " + user.getEmail() + ". Interval=" + mailList.getIntervalPeriod() + "s");
+        System.out.println("Sent message successfully for User=" + user.getEmail() + ". Interval=" + mailList.getIntervalPeriod() + "s, To=" + mailRow.getEmail());
     }
     public void sendSequenceEmail(MailRow mailRow, User user, SequenceList sequenceList, MailList mailList) throws MessagingException, IOException, CsvException {
         // Recipient's email ID needs to be mentioned.
