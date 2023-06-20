@@ -151,6 +151,7 @@ public class EmailService {
                         //mailRows.get(i).setSent(true);
                         //mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
                         //mailRowRepository.save(mailRows.get(i));
+                        System.out.println("sending test email to " + mailRows.get(i).getEmail());
                         Thread.sleep(mailList.getIntervalPeriod()*1000);
                     } catch (Exception e) {
                         e.printStackTrace();
