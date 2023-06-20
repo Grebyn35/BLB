@@ -287,6 +287,7 @@ public class EmailService {
             System.out.println("clear for sending sequence");
             return true;
         } else {
+            System.out.println("NOT clear for sending sequence");
             return false;
         }
 
