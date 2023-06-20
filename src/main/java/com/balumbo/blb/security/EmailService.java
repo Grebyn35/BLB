@@ -25,15 +25,13 @@ import javax.mail.*;
 import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+import javax.mail.search.FromStringTerm;
 import java.io.IOException;
 import java.io.StringReader;
 import java.sql.Date;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -98,7 +96,7 @@ public class EmailService {
             User user = userRepository.findById(sequenceLists.get(i).getUserId());
             if(!user.isError()){
                 if(isWithinWorkingHours()){
-                    applicationEventPublisher.publishEvent(new HandleSequenceEvent(sequenceLists.get(i)));
+                    //applicationEventPublisher.publishEvent(new HandleSequenceEvent(sequenceLists.get(i)));
                 }
             }
             else{
@@ -224,21 +222,21 @@ public class EmailService {
         for(int i = 0; i<mailRows.size();i++){
             user = userRepository.findById(user.getId()).get();
             if(emailValidation(user)) {
-                if(isWithinWorkingHours()){
+                if(isWithinWorkingHours() && checkIfResponse(user, mailRows.get(i))){
                     //Lägg till en if sats som kollar om användaren har svarat inloggade personen
-                    try {
-                        sequenceList = sequenceListRepository.findById(sequenceList.getId()).get();
-                        sendSequenceEmail(mailRows.get(i), user, sequenceList, mailList);
-                        mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
-                        mailRowRepository.save(mailRows.get(i));
-                        sequenceList.setStartedSending(true);
-                        sequenceListRepository.save(sequenceList);
-                        Thread.sleep(mailList.getIntervalPeriod()*1000);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        mailRows.get(i).setError(true);
-                        mailRowRepository.save(mailRows.get(i));
-                    }
+                    //try {
+                    //    sequenceList = sequenceListRepository.findById(sequenceList.getId()).get();
+                    //    sendSequenceEmail(mailRows.get(i), user, sequenceList, mailList);
+                    //    mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
+                    //    mailRowRepository.save(mailRows.get(i));
+                    //    sequenceList.setStartedSending(true);
+                    //    sequenceListRepository.save(sequenceList);
+                    //    Thread.sleep(mailList.getIntervalPeriod()*1000);
+                    //} catch (Exception e) {
+                    //    e.printStackTrace();
+                    //    mailRows.get(i).setError(true);
+                    //    mailRowRepository.save(mailRows.get(i));
+                    //}
                 }
                 else{
                     return;
@@ -583,6 +581,74 @@ public class EmailService {
             dataRowsList.add(dataRow);
         }
         return dataRowsList;
+    }
+    public static boolean checkIfResponse(User user, MailRow mailRow) {
+        try {
+            Properties properties = new Properties();
+
+            properties.put("mail.pop3.host", user.getMailHost());
+            properties.put("mail.pop3.port", "995");
+
+            Session emailSession = Session.getInstance(properties,
+                    new javax.mail.Authenticator() {
+                        protected PasswordAuthentication getPasswordAuthentication() {
+                            return new PasswordAuthentication(user.getMailEmail(), user.getMailPassword());
+                        }
+                    });
+
+            Store store = emailSession.getStore("pop3s");
+            store.connect(user.getMailHost(), user.getMailEmail(), user.getMailPassword());
+
+            Folder emailFolder = store.getFolder("INBOX");
+            emailFolder.open(Folder.READ_ONLY);
+
+            String emailToBeFound = "jesper@lidingoplatslageri.se";
+
+            int totalMessages = emailFolder.getMessageCount();
+            int startMessage = Math.max(1, totalMessages - 200);  // adjust this value based on how many recent emails you want to fetch
+
+            for (int i = totalMessages; i >= startMessage; i--) {
+                Message message = emailFolder.getMessage(i);
+                if (extractEmail(message.getFrom()).contains(emailToBeFound)) {
+                    java.util.Date receivedDate = message.getSentDate();
+                    java.sql.Date sentDate = mailRow.getSentDate();
+
+
+                    // Normalize dates to ignore time components
+                    receivedDate = java.sql.Date.valueOf(receivedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+                    sentDate = java.sql.Date.valueOf(sentDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+
+                    if(receivedDate.after(sentDate) || receivedDate.equals(sentDate)) {
+                        System.out.println("-----------------------------------");
+                        System.out.println("RECIEVED AFTER SENDING");
+                        System.out.println("Email #" + i);
+                        System.out.println("From: " + extractEmail(message.getFrom()));
+                        System.out.println("Received Date : " + message.getSentDate());
+                        return true;
+                    }
+                    return false;
+                }
+            }
+
+            emailFolder.close(false);
+            store.close();
+        } catch (NoSuchProviderException nspe) {
+            nspe.printStackTrace();
+        } catch (MessagingException me) {
+            me.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+    public static String extractEmail(Address[] fromAddresses){
+        if (fromAddresses != null && fromAddresses.length > 0) {
+            if (fromAddresses[0] instanceof InternetAddress) {
+                InternetAddress internetAddress = (InternetAddress) fromAddresses[0];
+                return internetAddress.getAddress();
+            }
+        }
+        return null;
     }
 
 }
