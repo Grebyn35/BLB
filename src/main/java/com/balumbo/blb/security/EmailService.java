@@ -314,7 +314,6 @@ public class EmailService {
             final String password = user.getMailPassword();
 
             // Assuming you are sending email through relay.jangosmtp.net
-            String host = user.getMailHost();
 
             Properties props = new Properties();
             props.put("mail.smtp.auth", "true");
