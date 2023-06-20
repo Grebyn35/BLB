@@ -257,8 +257,8 @@ public class EmailService {
                             else{
                                 continue;
                             }
-                            //mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
-                            //mailRowRepository.save(mailRows.get(i));
+                            mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
+                            mailRowRepository.save(mailRows.get(i));
                             sequenceList.setStartedSending(true);
                             sequenceListRepository.save(sequenceList);
                             Thread.sleep(mailList.getIntervalPeriod()*1000);
