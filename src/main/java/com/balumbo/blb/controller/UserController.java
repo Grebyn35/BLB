@@ -671,6 +671,7 @@ public class UserController {
                 sequenceList.setStartedSending(false);
                 sequenceList.setFinished(false);
             }
+            sequenceList.setOngoing(false);
             sequenceList.setMainContent(sequenceContentList.get(i));
             sequenceList.setSequenceAfterDays(Integer.parseInt(sequenceAfterList.get(i)));
             sequenceList.setUserId(user.getId());

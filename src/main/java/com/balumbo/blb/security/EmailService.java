@@ -81,7 +81,7 @@ public class EmailService {
             User user = userRepository.findById(mailLists.get(i).getUserId());
             if(!user.isError()){
                 if(isWithinWorkingHours()){
-                    //applicationEventPublisher.publishEvent(new HandleMailListEvent(mailLists.get(i)));
+                    applicationEventPublisher.publishEvent(new HandleMailListEvent(mailLists.get(i)));
                 }
             }
             else{
@@ -230,13 +230,11 @@ public class EmailService {
         if(mailRows.size()==0){
             System.out.println("no emails to send to, all are too early");
             sequenceList.setOngoing(false);
-            System.out.println(allSentForThisSequence);
             sequenceList.setFinished(allSentForThisSequence);
         }
         sequenceListRepository.save(sequenceList);
 
         for(int i = 0; i<mailRows.size();i++){
-            System.out.println(i);
             user = userRepository.findById(user.getId()).get();
             if(emailValidation(user)) {
                 if(isWithinWorkingHours()){
@@ -254,11 +252,9 @@ public class EmailService {
                                 return;
                             }
                             if(isOlderThanSequenceAge(sequenceList, mailRows.get(i))){
-                                System.out.println("sending test sequence to " + mailRows.get(i).getEmail() + " @ sent date " + mailRows.get(i).getSentDate());
-                                //sendSequenceEmail(mailRows.get(i), user, sequenceList, mailList);
+                                sendSequenceEmail(mailRows.get(i), user, sequenceList, mailList);
                             }
                             else{
-                                System.out.println("NOT sending test sequence to " + mailRows.get(i).getEmail() + " @ sent date " + mailRows.get(i).getSentDate());
                                 continue;
                             }
                             //mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
