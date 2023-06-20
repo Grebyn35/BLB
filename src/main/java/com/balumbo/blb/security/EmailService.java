@@ -96,7 +96,7 @@ public class EmailService {
             User user = userRepository.findById(sequenceLists.get(i).getUserId());
             if(!user.isError()){
                 if(isWithinWorkingHours()){
-                    //applicationEventPublisher.publishEvent(new HandleSequenceEvent(sequenceLists.get(i)));
+                    applicationEventPublisher.publishEvent(new HandleSequenceEvent(sequenceLists.get(i)));
                 }
             }
             else{
@@ -192,6 +192,9 @@ public class EmailService {
         java.sql.Date dateBeforeXDays = new java.sql.Date(cal.getTimeInMillis());
 
         MailList mailList = mailListRepository.findById(sequenceList.getMailListId());
+        if(!mailList.isFinished()){
+            return;
+        }
         User user = userRepository.findById(sequenceList.getUserId());
         ArrayList<Blacklist> blacklists = blacklistRepository.findAllByUserId(sequenceList.getUserId());
         ArrayList<String> blackListEmails = new ArrayList<>();
@@ -214,10 +217,12 @@ public class EmailService {
             for (int i = 0; i < allMailRows.size(); i++) {
                 if (allMailRows.get(i).getSentDate() != null) {
                     if (allMailRows.get(i).getSentDate().after(dateBeforeXDays) && sequenceList.isStartedSending()) {
+                        System.out.println(allMailRows.get(i).getSentDate() + " is after " + dateBeforeXDays);
                         allSentForThisSequence = true;
                     }
                     else{
                         allSentForThisSequence = false;
+                        break;
                     }
                 }
             }
@@ -226,18 +231,21 @@ public class EmailService {
         if(mailRows.size()==0){
             System.out.println("no emails to send to, all are too early");
             sequenceList.setOngoing(false);
+            System.out.println(allSentForThisSequence);
             sequenceList.setFinished(allSentForThisSequence);
         }
         sequenceListRepository.save(sequenceList);
 
         for(int i = 0; i<mailRows.size();i++){
+            System.out.println(i);
             user = userRepository.findById(user.getId()).get();
             if(emailValidation(user)) {
                 if(isWithinWorkingHours()){
-                    if(checkIfResponse(user, mailRows.get(i))){
+                    if(!checkIfResponse(user, mailRows.get(i))){
                         try{
                             sequenceList = sequenceListRepository.findById(sequenceList.getId()).get();
                         }catch (Exception e){
+                            e.printStackTrace();
                             return;
                         }
                         try {
@@ -247,9 +255,11 @@ public class EmailService {
                                 return;
                             }
                             if(isOlderThanSequenceAge(sequenceList, mailRows.get(i))){
+                                System.out.println("sending test sequence to " + mailRows.get(i).getEmail() + " @ sent date " + mailRows.get(i).getSentDate());
                                 //sendSequenceEmail(mailRows.get(i), user, sequenceList, mailList);
                             }
                             else{
+                                System.out.println("NOT sending test sequence to " + mailRows.get(i).getEmail() + " @ sent date " + mailRows.get(i).getSentDate());
                                 continue;
                             }
                             //mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
@@ -280,14 +290,12 @@ public class EmailService {
     }
     public boolean isOlderThanSequenceAge(SequenceList sequenceList, MailRow mailRow){
         // Parse the date from a String.
-        LocalDate dateSent = LocalDate.parse(mailRow.getSentDate().toString());
-        LocalDate currentDateMinusXDays = LocalDate.now().minusDays(sequenceList.getSequenceAfterDays());
+        LocalDate dateSent = LocalDate.parse(mailRow.getSentDate().toString()).plusDays(sequenceList.getSequenceAfterDays());
+        LocalDate currentDateMinusXDays = LocalDate.now();
 
-        if (dateSent.isAfter(currentDateMinusXDays) || dateSent.isEqual(currentDateMinusXDays)) {
-            System.out.println("clear for sending sequence");
+        if (dateSent.isBefore(currentDateMinusXDays) || dateSent.isEqual(currentDateMinusXDays)) {
             return true;
         } else {
-            System.out.println("NOT clear for sending sequence");
             return false;
         }
 
