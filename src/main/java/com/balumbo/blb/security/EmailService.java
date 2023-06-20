@@ -81,7 +81,7 @@ public class EmailService {
             User user = userRepository.findById(mailLists.get(i).getUserId());
             if(!user.isError()){
                 if(isWithinWorkingHours()){
-                    applicationEventPublisher.publishEvent(new HandleMailListEvent(mailLists.get(i)));
+                    //applicationEventPublisher.publishEvent(new HandleMailListEvent(mailLists.get(i)));
                 }
             }
             else{
@@ -96,7 +96,7 @@ public class EmailService {
             User user = userRepository.findById(sequenceLists.get(i).getUserId());
             if(!user.isError()){
                 if(isWithinWorkingHours()){
-                    //applicationEventPublisher.publishEvent(new HandleSequenceEvent(sequenceLists.get(i)));
+                    applicationEventPublisher.publishEvent(new HandleSequenceEvent(sequenceLists.get(i)));
                 }
             }
             else{
@@ -487,7 +487,7 @@ public class EmailService {
         message.setContent(replacedContent + "<br><br>" + replacedFooter + " " +  openedLink, "text/html; charset=UTF-8");
         // Send message
         Transport.send(message);
-        System.out.println("Sent message successfully for User=" + user.getEmail() + ". Interval=" + mailList.getIntervalPeriod() + "s, To=" + mailRow.getEmail());
+        System.out.println("Sent message successfully for User=" + user.getEmail() + ", Interval=" + mailList.getIntervalPeriod() + "s, To=" + mailRow.getEmail());
     }
     public void sendSequenceEmail(MailRow mailRow, User user, SequenceList sequenceList, MailList mailList) throws MessagingException, IOException, CsvException {
         // Recipient's email ID needs to be mentioned.
@@ -603,25 +603,23 @@ public class EmailService {
             Folder emailFolder = store.getFolder("INBOX");
             emailFolder.open(Folder.READ_ONLY);
 
-            String emailToBeFound = "jesper@lidingoplatslageri.se";
-
             int totalMessages = emailFolder.getMessageCount();
             int startMessage = Math.max(1, totalMessages - 200);  // adjust this value based on how many recent emails you want to fetch
 
             for (int i = totalMessages; i >= startMessage; i--) {
                 Message message = emailFolder.getMessage(i);
-                if (extractEmail(message.getFrom()).contains(emailToBeFound)) {
+                if (extractEmail(message.getFrom()).contains(mailRow.getEmail())) {
                     java.util.Date receivedDate = message.getSentDate();
-                    java.sql.Date sentDate = mailRow.getSentDate();
-
+                    java.util.Date sentDate = new java.util.Date(mailRow.getSentDate().getTime());
 
                     // Normalize dates to ignore time components
-                    receivedDate = java.sql.Date.valueOf(receivedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
-                    sentDate = java.sql.Date.valueOf(sentDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+                    LocalDate receivedLocalDate = receivedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                    LocalDate sentLocalDate = sentDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
-                    if(receivedDate.after(sentDate) || receivedDate.equals(sentDate)) {
+                    if(receivedLocalDate.isAfter(sentLocalDate) || receivedLocalDate.isEqual(sentLocalDate)) {
                         System.out.println("-----------------------------------");
-                        System.out.println("RECIEVED AFTER SENDING");
+                        System.out.println(mailRow);
+                        System.out.println("RECIEVED AFTER SENDING. Date recieved: " + receivedLocalDate + ", date sent: " + sentLocalDate);
                         System.out.println("Email #" + i);
                         System.out.println("From: " + extractEmail(message.getFrom()));
                         System.out.println("Received Date : " + message.getSentDate());

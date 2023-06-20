@@ -602,8 +602,10 @@ public class UserController {
         String[] finished = request.getParameterValues("finished[]");
         String[] startedSending = request.getParameterValues("startedSending[]");
 
+
         if(sequenceContent != null){
             for(int i = 0; i<sequenceContent.length;i++){
+                System.out.println(sequenceContent[i]);
                 sequenceContentList.add(sequenceContent[i]);
             }
         }
@@ -661,8 +663,14 @@ public class UserController {
             SequenceList sequenceList = new SequenceList();
             sequenceList.setMailListId(mailList.getId());
             sequenceList.setTitle(titleSequenceList.get(i));
-            sequenceList.setFinished(finishedList.get(i));
-            sequenceList.setStartedSending(startedSendingList.get(i));
+            if(finishedList.size()>0){
+                sequenceList.setFinished(finishedList.get(i));
+                sequenceList.setStartedSending(startedSendingList.get(i));
+            }
+            else{
+                sequenceList.setStartedSending(false);
+                sequenceList.setFinished(false);
+            }
             sequenceList.setMainContent(sequenceContentList.get(i));
             sequenceList.setSequenceAfterDays(Integer.parseInt(sequenceAfterList.get(i)));
             sequenceList.setUserId(user.getId());
