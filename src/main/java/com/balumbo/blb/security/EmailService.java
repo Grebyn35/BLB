@@ -154,6 +154,7 @@ public class EmailService {
                     } catch (Exception e) {
                         e.printStackTrace();
                         mailRows.get(i).setError(true);
+                        mailRows.get(i).setSent(true);
                         mailRowRepository.save(mailRows.get(i));
                     }
                 }
