@@ -217,7 +217,6 @@ public class EmailService {
             for (int i = 0; i < allMailRows.size(); i++) {
                 if (allMailRows.get(i).getSentDate() != null) {
                     if (allMailRows.get(i).getSentDate().after(dateBeforeXDays) && sequenceList.isStartedSending()) {
-                        System.out.println(allMailRows.get(i).getSentDate() + " is after " + dateBeforeXDays);
                         allSentForThisSequence = true;
                     }
                     else{
