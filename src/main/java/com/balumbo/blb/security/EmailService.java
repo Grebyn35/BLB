@@ -108,7 +108,6 @@ public class EmailService {
     @Async
     @EventListener
     public void handleMailList(HandleMailListEvent event) {
-        System.out.println("new maillist activating");
         MailList mailList = event.getMailList();
         User user = userRepository.findById(mailList.getUserId());
         ArrayList<Blacklist> blacklists = blacklistRepository.findAllByUserId(mailList.getUserId());
@@ -147,15 +146,21 @@ public class EmailService {
                 if(isWithinWorkingHours()){
                     try {
                         //mailList = mailListRepository.findById(mailList.getId()).get();
-                        //sendEmail(mailRows.get(i), user, mailList);
+                        if(!mailRowRepository.findById(mailRows.get(i).getId()).get().isSent()){
+                            System.out.println("sending test email to " + mailRows.get(i).getEmail());
+                            //sendEmail(mailRows.get(i), user, mailList);
+                        }
+                        else{
+                            continue;
+                        }
                         //mailRows.get(i).setSent(true);
                         //mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
                         //mailRowRepository.save(mailRows.get(i));
-                        System.out.println("sending test email to " + mailRows.get(i).getEmail());
                         Thread.sleep(mailList.getIntervalPeriod()*1000);
                     } catch (Exception e) {
                         e.printStackTrace();
                         //mailRows.get(i).setError(true);
+                        //mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
                         //mailRowRepository.save(mailRows.get(i));
                     }
                 }
@@ -386,7 +391,7 @@ public class EmailService {
 
         LocalTime startOfWorkDay = LocalTime.of(8, 0);
         //På heroku är tidszonen 2h bakåt, så den slutar skicka vid 17 (sommartid)
-        LocalTime endOfWorkDay = LocalTime.of(15, 0);
+        LocalTime endOfWorkDay = LocalTime.of(17, 0);
         return !time.isBefore(startOfWorkDay) && !time.isAfter(endOfWorkDay);
     }
     public boolean emailValidation(User user) {
