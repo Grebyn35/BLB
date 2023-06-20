@@ -146,6 +146,11 @@ public class EmailService {
                 if(isWithinWorkingHours()){
                     try {
                         //mailList = mailListRepository.findById(mailList.getId()).get();
+                        //Kollar om man stäng av den så stängs threaden
+                        if(!mailList.isOngoing()){
+                            System.out.println("thread cancelled. shutting down running thread.");
+                            return;
+                        }
                         if(!mailRowRepository.findById(mailRows.get(i).getId()).get().isSent()){
                             System.out.println("sending test email to " + mailRows.get(i).getEmail());
                             //sendEmail(mailRows.get(i), user, mailList);
@@ -159,9 +164,9 @@ public class EmailService {
                         Thread.sleep(mailList.getIntervalPeriod()*1000);
                     } catch (Exception e) {
                         e.printStackTrace();
-                        //mailRows.get(i).setError(true);
-                        //mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
-                        //mailRowRepository.save(mailRows.get(i));
+                        mailRows.get(i).setError(true);
+                        mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
+                        mailRowRepository.save(mailRows.get(i));
                     }
                 }
                 else{
