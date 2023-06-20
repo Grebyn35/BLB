@@ -246,9 +246,14 @@ public class EmailService {
                                 System.out.println("thread cancelled. shutting down running thread.");
                                 return;
                             }
-                            sendSequenceEmail(mailRows.get(i), user, sequenceList, mailList);
-                            mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
-                            mailRowRepository.save(mailRows.get(i));
+                            if(isOlderThanSequenceAge(sequenceList, mailRows.get(i))){
+                                //sendSequenceEmail(mailRows.get(i), user, sequenceList, mailList);
+                            }
+                            else{
+                                continue;
+                            }
+                            //mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
+                            //mailRowRepository.save(mailRows.get(i));
                             sequenceList.setStartedSending(true);
                             sequenceListRepository.save(sequenceList);
                             Thread.sleep(mailList.getIntervalPeriod()*1000);
@@ -272,6 +277,19 @@ public class EmailService {
         }
         sequenceList.setOngoing(false);
         sequenceListRepository.save(sequenceList);
+    }
+    public boolean isOlderThanSequenceAge(SequenceList sequenceList, MailRow mailRow){
+        // Parse the date from a String.
+        LocalDate dateSent = LocalDate.parse(mailRow.getSentDate().toString());
+        LocalDate currentDateMinusXDays = LocalDate.now().minusDays(sequenceList.getSequenceAfterDays());
+
+        if (dateSent.isAfter(currentDateMinusXDays) || dateSent.isEqual(currentDateMinusXDays)) {
+            System.out.println("clear for sending sequence");
+            return true;
+        } else {
+            return false;
+        }
+
     }
     public String returnDateWithTime(){
         java.util.Date date = new java.util.Date();
