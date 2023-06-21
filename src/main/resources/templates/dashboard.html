@@ -147,15 +147,15 @@
                   <div class="d-xl-flex justify-content-between p-3 gap-4">
                     <div class="p-3 me-3">
                       <p class="text-muted mb-0">Alla utskick</p>
-                      <a href="/user/scalp/trades/open" class="display-6 text-body text-decoration-none" th:text="${mailListsFinishedTotal} + ${mailListsNotFinishedTotal}">0</a>
+                      <a href="#" class="display-6 text-body text-decoration-none" th:text="${mailListsFinishedTotal} + ${mailListsNotFinishedTotal}">0</a>
                     </div>
                     <div class="p-3 bg-light-green">
                       <p class="text-muted mb-0">Köade utskick</p>
-                      <a href="/user/scalp/trades/open" class="display-6 text-success text-decoration-none" th:text="${mailListsNotFinishedTotal}">0</a>
+                      <a href="/user/koade-utskick?page=0" class="display-6 text-success text-decoration-none" th:text="${mailListsNotFinishedTotal}">0</a>
                     </div>
                     <div class="p-3 bg-light-card">
                       <p class="text-muted mb-0">Färdiga utskick</p>
-                      <a href="/user/scalp/trades/closed" class="display-6 text-muted text-decoration-none" th:text="${mailListsFinishedTotal}">0</a>
+                      <a href="/user/fardiga-utskick?page=0" class="display-6 text-muted text-decoration-none" th:text="${mailListsFinishedTotal}">0</a>
                     </div>
                   </div>
                 </div>
