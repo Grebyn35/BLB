@@ -224,6 +224,10 @@
                                 <button class="btn btn-sm btn-light border p-0 shadow-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Radera utskick">
                                     <i class="bx bx-x p-1" style="font-size: 0.9rem " th:data-listid="${completedList.id}" th:data-listname="${completedList.fileName}" data-bs-toggle="modal" data-bs-target="#removeListModal"></i>
                                 </button>
+                                <div class="border-start d-lg-none"></div>
+                                <button class="btn btn-sm btn-light border p-0 shadow-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Skicka ett test mejl till mig själv">
+                                    <a th:href="'/user/lista-rader/' + ${completedList.id} + '?page=0'"><i class="bx bxs-envelope p-1" style="font-size: 0.9rem" th:data-listid="${completedList.id}"></i></a>
+                                </button>
                             </div>
                         </td>
                     </tr>

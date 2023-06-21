@@ -130,6 +130,17 @@ public class UserController {
         model.addAttribute("user", user);
         return "dashboard";
     }
+    @GetMapping("/user/lista-rader/{id}")
+    public String listRows(Model model, @PathVariable long id, @RequestParam("page") int page){
+        Pageable pageable = PageRequest.of(page, 50);
+        User user = returnCurrentUser();
+        model.addAttribute("user", user);
+        Page<MailRow> mailRows = mailRowRepository.findByMailListIdAndIsHeader(id, false, pageable);
+        model.addAttribute("totalHits", mailRows.getTotalPages());
+        model.addAttribute("lists", mailRows);
+        model.addAttribute("page", page);
+        return "list-data";
+    }
     @GetMapping("/track/{id}")
     public String dashboard(Model model, @PathVariable long id){
         MailRow mailRow = mailRowRepository.findById(id);

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+
+<html lang="sv" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Färdiga utskick</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+    <!-- Meta Tags -->
+    <!-- <meta name="description" content="">
+    <meta name="author" content=""> -->
+
+    <!-- Viewport -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Favicon and Touch Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
+    <link rel="manifest" href="/favicon/site.webmanifest">
+    <link rel="mask-icon" href="/favicon/safari-pinned-tab.svg" color="#6366f1">
+    <link rel="shortcut icon" href="/favicon/favicon.ico">
+    <meta name="msapplication-TileColor" content="#080032">
+    <meta name="msapplication-config" content="assets/favicon/browserconfig.xml">
+    <meta name="theme-color" content="#ffffff">
+
+    <!-- CSS -->
+    <link rel="stylesheet" media="screen" href="/vendor/boxicons/css/boxicons.min.css"/>
+    <link rel="stylesheet" media="screen" href="/style/theme.css">
+    <link rel="stylesheet" media="screen" href="/style/basic.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+<header class="navbar navbar-expand-lg bg-light shadow-sm">
+    <div class="container">
+        <a href="/user/dashboard" class="navbar-brand">
+            .Balumbo
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse1" aria-expanded="false">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <nav id="navbarCollapse1" class="collapse navbar-collapse">
+            <hr class="d-lg-none mt-3 mb-2">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item dropdown">
+                    <a class="nav-link d-flex align-items-center" id="dropdownBacktesting" data-bs-toggle="dropdown"
+                       aria-expanded="false" style="cursor: pointer;">Utskick</a>
+                    <ul class="dropdown-menu" aria-labelledby="dropdownBacktesting">
+                        <li><a class="dropdown-item" href="/user/koade-utskick?page=0" style="cursor: pointer;">Köade utskick</a></li>
+                        <li><a class="dropdown-item" href="/user/fardiga-utskick?page=0" style="cursor: pointer;">Färdiga utskick</a></li>
+                        <li><a class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#uploadModal">Nytt utskick</a></li>
+                    </ul>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link d-flex align-items-center" id="dropdownSettings" data-bs-toggle="dropdown"
+                       aria-expanded="false" style="cursor: pointer;" href="#">Inställningar</a>
+                    <ul class="dropdown-menu" aria-labelledby="dropdownSettings">
+                        <li><a class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#settingsModal" style="cursor: pointer;">SMTP</a></li>
+                        <li><a class="dropdown-item" href=/logout>logga ut</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</header>
+<div class="container">
+    <div class="w-100">
+        <div class="px-lg-4 px-sm-3 px-2 py-lg-5 py-sm-4 py-3">
+            <div class="tableSearch">
+                <table class="table fs-sm">
+                    <thead>
+                    <tr class="d-none d-lg-table-row">
+                        <th>Email</th>
+                        <th>Skickat</th>
+                        <th>Öppnat</th>
+                        <th>Ta bort</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="list : ${lists}">
+                        <td class="d-none d-lg-table-cell">
+                                    <span class="badge shadow-sm border bg-secondary text-body">
+                                        <span th:text="${list.email}">johannes.eriksson@gmail.com</span>
+                                    </span>
+                        </td>
+                        <td class="pe-1">
+                            <i th:if="${list.sentDate != null}" data-bs-toggle="tooltip" data-bs-placement="top" th:title="'Utskicket skickades ' + ${list.sentDate}" class="bx bxs-check-circle fs-lg text-success me-1"></i>
+                        </td>
+                        <td class="pe-1">
+                            <i th:if="${list.timeOpened != null}" data-bs-toggle="tooltip" data-bs-placement="top" th:title="'Utskicket öppnades ' + ${list.timeOpened}" class="bx bxs-check-circle fs-lg text-success me-1"></i>
+                        </td>
+                        <td class="px-0" style="max-width: fit-content !important;">
+                            <div class="d-flex justify-content-center gap-1 pe-2">
+                                <button class="btn btn-sm btn-light border p-0 shadow-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Ta bort">
+                                    <a th:href="'/user/radera-rad/' + ${list.id}"><i class="bx bx-x p-1" style="font-size: 0.9rem" th:data-listid="${list.id}"></i></a>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <!-- Pagination -->
+                <nav aria-label="Page navigation example" th:if="${lists.size>49}">
+                    <ul class="pagination">
+                        <li class="page-item">
+                            <a th:if="${page>0}" style="cursor: pointer" th:onclick="searchResults([[${page-1}]])" class="page-link shadow-sm border">
+                                <i class="bx bx-chevron-left mx-n1"></i>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a style="cursor: pointer" th:if="${page>2}" th:onclick="searchResults([[${page-2}]])" th:text="${page-2}" class="page-link shadow-sm border">1</a>
+                        </li>
+                        <li class="page-item">
+                            <a style="cursor: pointer" th:if="${page>1}" th:onclick="searchResults([[${page-1}]])" th:text="${page-1}" class="page-link shadow-sm border">2</a>
+                        </li>
+                        <li class="page-item active" aria-current="page">
+                    <span class="page-link bg-info shadow-info" th:text="${page+1}">
+                      3
+                      <span class="visually-hidden">(current)</span>
+                    </span>
+                        </li>
+                        <li class="page-item">
+                            <a th:if="${page+1<totalHits}" th:onclick="searchResults([[${page+1}]])" th:text="${page+2}" style="cursor: pointer" class="page-link shadow-sm border">4</a>
+                        </li>
+                        <li class="page-item">
+                            <a th:if="${page+2<totalHits-1}" th:onclick="searchResults([[${page+2}]])" th:text="${page+3}" style="cursor: pointer" class="page-link shadow-sm border">5</a>
+                        </li>
+                        <li class="page-item">
+                            <a th:if="${page+3<totalHits-1}" th:onclick="searchResults([[${page+3}]])" th:text="${page+4}" style="cursor: pointer" class="page-link shadow-sm border">5</a>
+                        </li>
+                        <li class="page-item">
+                            <a th:if="${page+4<totalHits-1}" th:onclick="searchResults([[${page+4}]])" th:text="${page+5}" style="cursor: pointer" class="page-link shadow-sm border">5</a>
+                        </li>
+                        <li class="page-item">
+                            <a th:if="${page+5<totalHits-1}" th:onclick="searchResults([[${page+5}]])" th:text="${page+6}" style="cursor: pointer" class="page-link shadow-sm border">5</a>
+                        </li>
+                        <li class="page-item">
+                            <a th:if="${page+6<totalHits-1}" th:onclick="searchResults([[${page+6}]])" th:text="${page+7}" style="cursor: pointer" class="page-link shadow-sm border">5</a>
+                        </li>
+                        <li class="page-item">
+                            <a th:if="${page+7<totalHits-1}" th:onclick="searchResults([[${page+7}]])" th:text="${page+8}" style="cursor: pointer" class="page-link shadow-sm border">5</a>
+                        </li>
+                        <li class="page-item">
+                            <a th:if="${page+8<totalHits-1}" th:onclick="searchResults([[${page+8}]])" th:text="${page+9}" style="cursor: pointer" class="page-link shadow-sm border">5</a>
+                        </li>
+                        <li class="page-item">
+                            <a th:if="${page+1<totalHits}" th:onclick="searchResults([[${page+1}]])" style="cursor: pointer" class="page-link shadow-sm border">
+                                <i class="bx bx-chevron-right mx-n1"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+<script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
+<!-- Scripts -->
+<script src="/vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/theme.min.js"></script>
+<script src="/js/main.js"></script>
+<script>
+    var date = new Date();
+    var day = String(date.getDate()).padStart(2, '0');
+    var month = String(date.getMonth() + 1).padStart(2, '0'); //January is 0!
+    var year = date.getFullYear();
+
+    var today = year + '-' + month + '-' + day;
+
+    document.getElementById('reinstateDateInput').value = today;
+
+    $('#removeListModal').on('show.bs.modal', function(e) {
+
+        let id = $(e.relatedTarget).data('listid');
+        let name = $(e.relatedTarget).data('listname');
+        document.getElementById("removeNameText").textContent = "Ta bort '" + name + "'?"
+        document.getElementById("listId").value = id
+
+    });
+
+    $('#reinstateListModal').on('show.bs.modal', function(e) {
+
+        let id = $(e.relatedTarget).data('listid');
+        let name = $(e.relatedTarget).data('listname');
+        document.getElementById("reinstateNameText").textContent = "Återställ '" + name + "' för att planera ett nytt utskick?"
+        document.getElementById("reinstateListId").value = id
+
+    });
+</script>
+<script>
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+</script>
+<script>
+    document.getElementById('file').addEventListener('change', function(e) {
+        var fileNameByInput = e.target.files[0].name;
+        var fileName = document.getElementById("name").value
+        if(fileName.length==0){
+            document.getElementById("name").value = fileNameByInput
+        }
+    });
+</script>
+<script th:if="${uploaded==true}">
+    alert("Lista uppladdad")
+</script>
+<script th:if="${sentTest==true}">
+    alert("Ett test mejl har sickats till inloggad epostadress")
+</script>
+<script th:if="${sentTest==false}">
+    alert("Det gick inte att skicka ett test mejl. Antigen är eposten felaktig eller så är dina epost uppgifter fel.")
+</script>
+<script th:if="${hasError==false}">
+    alert("settings updated")
+</script>
+</body>
+</html>
