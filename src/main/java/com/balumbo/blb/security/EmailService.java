@@ -39,7 +39,7 @@ import java.util.regex.Pattern;
 @EnableAsync
 public class EmailService {
 
-    static String urlPath = "http://localhost:8080";
+    static String urlPath = "https://balumbo.herokuapp.com";
 
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
@@ -81,7 +81,7 @@ public class EmailService {
             User user = userRepository.findById(mailLists.get(i).getUserId());
             if(!user.isError()){
                 if(isWithinWorkingHours()){
-                    //applicationEventPublisher.publishEvent(new HandleMailListEvent(mailLists.get(i)));
+                    applicationEventPublisher.publishEvent(new HandleMailListEvent(mailLists.get(i)));
                 }
             }
             else{
@@ -96,7 +96,7 @@ public class EmailService {
             User user = userRepository.findById(sequenceLists.get(i).getUserId());
             if(!user.isError()){
                 if(isWithinWorkingHours()){
-                    //applicationEventPublisher.publishEvent(new HandleSequenceEvent(sequenceLists.get(i)));
+                    applicationEventPublisher.publishEvent(new HandleSequenceEvent(sequenceLists.get(i)));
                 }
             }
             else{

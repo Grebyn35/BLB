@@ -139,7 +139,26 @@ public class UserController {
         model.addAttribute("totalHits", mailRows.getTotalPages());
         model.addAttribute("lists", mailRows);
         model.addAttribute("page", page);
+        model.addAttribute("id", mailRows.getContent().get(0).getMailListId());
         return "list-data";
+    }
+    @GetMapping("/user/radera-rad/{id}")
+    public String deleteRow(Model model, @PathVariable long id){
+        MailRow mailRow = mailRowRepository.findById(id);
+        mailRowRepository.delete(mailRow);
+        return "redirect:/user/lista-rader/" + mailRow.getMailListId() + "?page=0";
+    }
+    @GetMapping("/user/search-list-row")
+    public String listRowsSearch(Model model, @RequestParam("id") long id, @RequestParam("page") int page){
+        Pageable pageable = PageRequest.of(page, 50);
+        User user = returnCurrentUser();
+        model.addAttribute("user", user);
+        Page<MailRow> mailRows = mailRowRepository.findByMailListIdAndIsHeader(id, false, pageable);
+        model.addAttribute("totalHits", mailRows.getTotalPages());
+        model.addAttribute("lists", mailRows);
+        model.addAttribute("page", page);
+        model.addAttribute("id", id);
+        return "list-data :: .tableSearch";
     }
     @GetMapping("/track/{id}")
     public String dashboard(Model model, @PathVariable long id){
