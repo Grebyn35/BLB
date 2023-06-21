@@ -423,9 +423,9 @@ public class EmailService {
             return false;  // It's a weekend
         }
 
-        LocalTime startOfWorkDay = LocalTime.of(8, 0);
+        LocalTime startOfWorkDay = LocalTime.of(6, 0);
         //På heroku är tidszonen 2h bakåt, så den slutar skicka vid 17 (sommartid)
-        LocalTime endOfWorkDay = LocalTime.of(17, 0);
+        LocalTime endOfWorkDay = LocalTime.of(15, 0);
         return !time.isBefore(startOfWorkDay) && !time.isAfter(endOfWorkDay);
     }
     public boolean emailValidation(User user) {
