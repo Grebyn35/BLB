@@ -169,6 +169,8 @@ public class EmailService {
                     }
                 }
                 else{
+                    mailList.setOngoing(false);
+                    mailListRepository.save(mailList);
                     return;
                 }
             }
@@ -270,6 +272,8 @@ public class EmailService {
                     }
                 }
                 else{
+                    sequenceList.setOngoing(false);
+                    sequenceListRepository.save(sequenceList);
                     return;
                 }
             }
