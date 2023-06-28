@@ -133,6 +133,10 @@ public class LeadService {
                 Company company = companies.get(i);
                 companyRepository.save(company);
             }
+            else{
+                existing = companies.get(i);
+                companyRepository.save(existing);
+            }
         }
         //Remove companies which has been removed from the new batch
         ArrayList<String> orgNoList = new ArrayList<>();
