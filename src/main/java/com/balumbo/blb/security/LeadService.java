@@ -134,7 +134,20 @@ public class LeadService {
                 companyRepository.save(company);
             }
             else{
-                existing = companies.get(i);
+                existing.setAssets(companies.get(i).getAssets());
+                existing.setCounty(companies.get(i).getCounty());
+                existing.setExecutive(companies.get(i).getExecutive());
+                existing.setVisitAdress(companies.get(i).getVisitAdress());
+                existing.setRevenue(companies.get(i).getRevenue());
+                existing.setCity(companies.get(i).getCity());
+                existing.setCmpName(companies.get(i).getCmpName());
+                existing.setHasRemarks(companies.get(i).isHasRemarks());
+                existing.setTelephone(companies.get(i).getTelephone());
+                existing.setHBranch(companies.get(i).getHBranch());
+                existing.setLinkTo(companies.get(i).getLinkTo());
+                existing.setPostalAdress(companies.get(i).getPostalAdress());
+                existing.setRegDate(companies.get(i).getRegDate());
+                existing.setUBranch(companies.get(i).getUBranch());
                 companyRepository.save(existing);
             }
         }
