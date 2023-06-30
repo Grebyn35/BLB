@@ -48,6 +48,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @EnableAsync
@@ -768,10 +769,11 @@ public class EmailService {
         String defUrl = "https://www.allabolag.se/lista/aktiebolag/24";
         ArrayList<String> countyPath = returnCountyPath();
         ArrayList<String> branchPath = returnBranchPath();
-        ArrayList<Company> companies = new ArrayList<>();
+        ArrayList<String> orgNoList = new ArrayList<>();
         int totalResults = getTotalHits("https://www.allabolag.se/lista/aktiebolag/24");
         for(int i = 0; i<countyPath.size();i++){
             for(int c = 0; c<branchPath.size();c++){
+                ArrayList<Company> companies = new ArrayList<>();
                 int hits = getTotalHits(defUrl + branchPath.get(c).replaceAll("Ä", "%C3%84").replaceAll("Å", "%C3%85").replaceAll("Ö", "%C3%96") + countyPath.get(i).replaceAll("Ä", "%C3%84").replaceAll("Å", "%C3%85").replaceAll("Ö", "%C3%96"));
                 int pages = (int) Math.ceil(hits / 20.0);
                 System.out.println("[" + i + "/" + countyPath.size() + "]" + " | " +  "[" + c + "/" + branchPath.size() + "]" + " | " +  "[" + companies.size() + "/" + totalResults + "]");
@@ -781,9 +783,22 @@ public class EmailService {
                 else{
                     companies.addAll(getCompaniesFromUrlDetailedByRevenue(defUrl + branchPath.get(c).replaceAll("Ä", "%C3%84").replaceAll("Å", "%C3%85").replaceAll("Ö", "%C3%96") + countyPath.get(i).replaceAll("Ä", "%C3%84").replaceAll("Å", "%C3%85").replaceAll("Ö", "%C3%96")));
                 }
+                saveCompanies(companies);
+                List<String> newOrgNos = companies.stream()
+                        .map(Company::getOrgNo)
+                        .collect(Collectors.toList());
+                orgNoList.addAll(newOrgNos);
                 System.gc();
             }
         }
+        ArrayList<Company> removedCompanies = companyRepository.findAllByOrgNoNotIn(orgNoList);
+        //This might cause an error, as it uses delete
+        companyRepository.deleteAll(removedCompanies);
+        batchUpdater.setDateUpdated(Date.valueOf(returnDateWithTime()));
+        batchUpdaterRepository.save(batchUpdater);
+
+    }
+    public void saveCompanies(ArrayList<Company> companies){
         //Save the new companies if there are new ones
         for(int i = 0; i<companies.size();i++){
             System.out.println("iterating new/removed companies... " + i + "/" + companies.size());
@@ -810,16 +825,6 @@ public class EmailService {
                 companyRepository.save(existing);
             }
         }
-        //Remove companies which has been removed from the new batch
-        ArrayList<String> orgNoList = new ArrayList<>();
-        for(int i = 0; i<companies.size();i++){
-            orgNoList.add(companies.get(i).getOrgNo());
-        }
-        ArrayList<Company> removedCompanies = companyRepository.findAllByOrgNoNotIn(orgNoList);
-        //This might cause an error, as it uses delete
-        companyRepository.deleteAll(removedCompanies);
-        batchUpdater.setDateUpdated(Date.valueOf(returnDateWithTime()));
-        batchUpdaterRepository.save(batchUpdater);
     }
     public ArrayList<String> returnCountyPath(){
         ArrayList<String> countyPath = new ArrayList<>();
@@ -944,7 +949,6 @@ public class EmailService {
                 try {
                     URL url = new URL(path + revenue.get(i) + "?page=" + c);
                     System.out.println("PAGE:[" + c + "/" + pages + "]"  + " | " + "[" +  path + revenue.get(i) + "]");
-                    System.out.println(path + revenue.get(i) + "?page=" + c + "/" + pages);
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 
                     conn.setRequestProperty("accept", "application/json");
