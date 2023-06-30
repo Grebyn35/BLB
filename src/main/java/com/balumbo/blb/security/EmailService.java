@@ -46,6 +46,7 @@ import java.text.SimpleDateFormat;
 import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -766,62 +767,85 @@ public class EmailService {
     //Handles all the leads generation functions
     @Transactional
     public void constructCompaniesFromJson(BatchUpdater batchUpdater) throws IOException, LoginException, InterruptedException {
-        String defUrl = "https://www.allabolag.se/lista/aktiebolag/24";
-        ArrayList<String> countyPath = returnCountyPath();
-        ArrayList<String> branchPath = returnBranchPath();
+        final String baseUrl = "https://www.allabolag.se/lista/aktiebolag/24";
+        List<String> countyPaths = returnCountyPath();
+        List<String> branchPaths = returnBranchPath();
         ArrayList<String> orgNoList = new ArrayList<>();
-        int totalResults = getTotalHits("https://www.allabolag.se/lista/aktiebolag/24");
-        for(int i = 0; i<countyPath.size();i++){
-            for(int c = 0; c<branchPath.size();c++){
+        int totalResults = getTotalHits(baseUrl);
+
+        for (int i = 0; i < countyPaths.size(); i++) {
+            for (int j = 0; j < branchPaths.size(); j++) {
                 ArrayList<Company> companies = new ArrayList<>();
-                int hits = getTotalHits(defUrl + branchPath.get(c).replaceAll("Ä", "%C3%84").replaceAll("Å", "%C3%85").replaceAll("Ö", "%C3%96") + countyPath.get(i).replaceAll("Ä", "%C3%84").replaceAll("Å", "%C3%85").replaceAll("Ö", "%C3%96"));
+
+                String countyPath = countyPaths.get(i).replaceAll("Ä", "%C3%84")
+                        .replaceAll("Å", "%C3%85")
+                        .replaceAll("Ö", "%C3%96");
+                String branchPath = branchPaths.get(j).replaceAll("Ä", "%C3%84")
+                        .replaceAll("Å", "%C3%85")
+                        .replaceAll("Ö", "%C3%96");
+
+                String url = baseUrl + branchPath + countyPath;
+                int hits = getTotalHits(url);
                 int pages = (int) Math.ceil(hits / 20.0);
-                System.out.println("[" + i + "/" + countyPath.size() + "]" + " | " +  "[" + c + "/" + branchPath.size() + "]" + " | " +  "[" + companies.size() + "/" + totalResults + "]");
-                if(pages<=400){
-                    companies.addAll(getCompaniesFromUrl(defUrl + branchPath.get(c).replaceAll("Ä", "%C3%84").replaceAll("Å", "%C3%85").replaceAll("Ö", "%C3%96") + countyPath.get(i).replaceAll("Ä", "%C3%84").replaceAll("Å", "%C3%85").replaceAll("Ö", "%C3%96"), pages));
+
+                System.out.printf("[%d/%d] | [%d/%d] | [%d/%d]\n", i, countyPaths.size(), j, branchPaths.size(), companies.size(), totalResults);
+
+                if (pages <= 400) {
+                    companies.addAll(getCompaniesFromUrl(url, pages));
+                } else {
+                    companies.addAll(getCompaniesFromUrlDetailedByRevenue(url));
                 }
-                else{
-                    companies.addAll(getCompaniesFromUrlDetailedByRevenue(defUrl + branchPath.get(c).replaceAll("Ä", "%C3%84").replaceAll("Å", "%C3%85").replaceAll("Ö", "%C3%96") + countyPath.get(i).replaceAll("Ä", "%C3%84").replaceAll("Å", "%C3%85").replaceAll("Ö", "%C3%96")));
-                }
+
                 saveCompanies(companies);
-                List<String> newOrgNos = companies.stream()
+                orgNoList.addAll(companies.stream()
                         .map(Company::getOrgNo)
-                        .collect(Collectors.toList());
-                orgNoList.addAll(newOrgNos);
+                        .collect(Collectors.toList()));
+
                 System.gc();
             }
         }
-        ArrayList<Company> removedCompanies = companyRepository.findAllByOrgNoNotIn(orgNoList);
-        //This might cause an error, as it uses delete
+
+        // Check if there are any REMOVED old companies from last update batch
+        List<Company> removedCompanies = companyRepository.findAllByOrgNoNotIn(orgNoList);
+
+        // This might cause an error, as it uses delete
         companyRepository.deleteAll(removedCompanies);
+
         batchUpdater.setDateUpdated(Date.valueOf(returnDateWithTime()));
         batchUpdaterRepository.save(batchUpdater);
-
     }
-    public void saveCompanies(ArrayList<Company> companies){
-        //Save the new companies if there are new ones
-        for(int i = 0; i<companies.size();i++){
-            System.out.println("iterating new/removed companies... " + i + "/" + companies.size());
-            Company existing = companyRepository.findByOrgNo(companies.get(i).getOrgNo());
-            if(existing==null){
-                Company company = companies.get(i);
+    public void saveCompanies(List<Company> companies) {
+        // Fetch all existing companies in a single operation
+        List<String> orgNos = companies.stream()
+                .map(Company::getOrgNo)
+                .collect(Collectors.toList());
+        Map<String, Company> existingCompaniesMap = companyRepository.findByOrgNoIn(orgNos)
+                .stream()
+                .collect(Collectors.toMap(Company::getOrgNo, Function.identity()));
+
+        // Process companies in-memory
+        for (Company company : companies) {
+            System.out.println("iterating new/removed companies... " + company + "/" + companies.size());
+
+            Company existing = existingCompaniesMap.get(company.getOrgNo());
+
+            if (existing == null) {
                 companyRepository.save(company);
-            }
-            else{
-                existing.setAssets(companies.get(i).getAssets());
-                existing.setCounty(companies.get(i).getCounty());
-                existing.setExecutive(companies.get(i).getExecutive());
-                existing.setVisitAdress(companies.get(i).getVisitAdress());
-                existing.setRevenue(companies.get(i).getRevenue());
-                existing.setCity(companies.get(i).getCity());
-                existing.setCmpName(companies.get(i).getCmpName());
-                existing.setHasRemarks(companies.get(i).isHasRemarks());
-                existing.setTelephone(companies.get(i).getTelephone());
-                existing.setHBranch(companies.get(i).getHBranch());
-                existing.setLinkTo(companies.get(i).getLinkTo());
-                existing.setPostalAdress(companies.get(i).getPostalAdress());
-                existing.setRegDate(companies.get(i).getRegDate());
-                existing.setUBranch(companies.get(i).getUBranch());
+            } else {
+                existing.setAssets(company.getAssets());
+                existing.setCounty(company.getCounty());
+                existing.setExecutive(company.getExecutive());
+                existing.setVisitAdress(company.getVisitAdress());
+                existing.setRevenue(company.getRevenue());
+                existing.setCity(company.getCity());
+                existing.setCmpName(company.getCmpName());
+                existing.setHasRemarks(company.isHasRemarks());
+                existing.setTelephone(company.getTelephone());
+                existing.setHBranch(company.getHBranch());
+                existing.setLinkTo(company.getLinkTo());
+                existing.setPostalAdress(company.getPostalAdress());
+                existing.setRegDate(company.getRegDate());
+                existing.setUBranch(company.getUBranch());
                 companyRepository.save(existing);
             }
         }

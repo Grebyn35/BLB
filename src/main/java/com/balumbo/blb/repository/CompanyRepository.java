@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.Date;
 import java.util.ArrayList;
+import java.util.List;
 
 @Repository
 public interface CompanyRepository extends CrudRepository<Company,Long> {
@@ -16,6 +17,7 @@ public interface CompanyRepository extends CrudRepository<Company,Long> {
     Company findByOrgNo(String orgNo);
     ArrayList<Company> findAll();
     ArrayList<Company> findAllByOrgNoNotIn(ArrayList<String> orgNo);
+    List<Company> findByOrgNoIn(List<String> orgNos);
 
     @Query(value = "SELECT c FROM Company c WHERE c.updatedInfo <= :date OR c.updatedInfo IS NULL ORDER BY function('RAND')")
     ArrayList<Company> findCompaniesOlderThanForInfo(@Param("date") Date date, Pageable pageable);
