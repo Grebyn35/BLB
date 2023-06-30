@@ -151,10 +151,15 @@ public class EmailService {
             Date currentDate = Date.valueOf(LocalDate.now());
 
             //Check if the last update for companies was more than 'daysAfter' ago
-            if (ChronoUnit.DAYS.between(dateUpdated.toLocalDate(), currentDate.toLocalDate()) >= daysAfter && !batchUpdater.isUpdating()) {
-                batchUpdater.setUpdating(true);
-                batchUpdaterRepository.save(batchUpdater);
-                constructCompaniesFromJson(batchUpdater);
+            if (ChronoUnit.DAYS.between(dateUpdated.toLocalDate(), currentDate.toLocalDate()) >= daysAfter) {
+                if(!batchUpdater.isUpdating()){
+                    batchUpdater.setUpdating(true);
+                    batchUpdaterRepository.save(batchUpdater);
+                    constructCompaniesFromJson(batchUpdater);
+                }
+                else{
+                    System.out.println("company batch is already updating...");
+                }
             } else {
                 System.out.println("BatchUpdater date not reached yet... next update=" + dateUpdated.toLocalDate().plus(daysAfter, ChronoUnit.DAYS));
             }
