@@ -824,28 +824,28 @@ public class EmailService {
                 .collect(Collectors.toMap(Company::getOrgNo, Function.identity()));
 
         // Process companies in-memory
-        for (Company company : companies) {
-            System.out.println("iterating new/removed companies... " + company + "/" + companies.size());
+        for (int i = 0; i < companies.size(); i++) {
+            System.out.println("iterating new/removed companies... " + (i + 1) + "/" + companies.size());
 
-            Company existing = existingCompaniesMap.get(company.getOrgNo());
+            Company existing = existingCompaniesMap.get(companies.get(i).getOrgNo());
 
             if (existing == null) {
-                companyRepository.save(company);
+                companyRepository.save(companies.get(i));
             } else {
-                existing.setAssets(company.getAssets());
-                existing.setCounty(company.getCounty());
-                existing.setExecutive(company.getExecutive());
-                existing.setVisitAdress(company.getVisitAdress());
-                existing.setRevenue(company.getRevenue());
-                existing.setCity(company.getCity());
-                existing.setCmpName(company.getCmpName());
-                existing.setHasRemarks(company.isHasRemarks());
-                existing.setTelephone(company.getTelephone());
-                existing.setHBranch(company.getHBranch());
-                existing.setLinkTo(company.getLinkTo());
-                existing.setPostalAdress(company.getPostalAdress());
-                existing.setRegDate(company.getRegDate());
-                existing.setUBranch(company.getUBranch());
+                existing.setAssets(companies.get(i).getAssets());
+                existing.setCounty(companies.get(i).getCounty());
+                existing.setExecutive(companies.get(i).getExecutive());
+                existing.setVisitAdress(companies.get(i).getVisitAdress());
+                existing.setRevenue(companies.get(i).getRevenue());
+                existing.setCity(companies.get(i).getCity());
+                existing.setCmpName(companies.get(i).getCmpName());
+                existing.setHasRemarks(companies.get(i).isHasRemarks());
+                existing.setTelephone(companies.get(i).getTelephone());
+                existing.setHBranch(companies.get(i).getHBranch());
+                existing.setLinkTo(companies.get(i).getLinkTo());
+                existing.setPostalAdress(companies.get(i).getPostalAdress());
+                existing.setRegDate(companies.get(i).getRegDate());
+                existing.setUBranch(companies.get(i).getUBranch());
                 companyRepository.save(existing);
             }
         }
