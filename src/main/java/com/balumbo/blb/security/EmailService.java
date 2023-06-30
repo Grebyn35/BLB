@@ -103,6 +103,10 @@ public class EmailService {
             BatchUpdater batchUpdater = new BatchUpdater();
             batchUpdaterRepository.save(batchUpdater);
         }
+        else{
+            batchUpdaters.get(0).setUpdating(false);
+            batchUpdaterRepository.save(batchUpdaters.get(0));
+        }
     }
     @Scheduled(fixedRate = 20000) // Check for changes in the mailList every 20 seconds
     public void sendEmails() {
@@ -134,7 +138,7 @@ public class EmailService {
             }
         }
     }
-    @Scheduled(fixedRate = 60000 * 24)
+    @Scheduled(fixedRate = 60000 * 1)
     public void updateCompanyBatchList() throws LoginException, IOException, InterruptedException {
         BatchUpdater batchUpdater = batchUpdaterRepository.findAll().get(0);
         //This is if there hasn't been any previous calls for updating the companies database
@@ -147,7 +151,9 @@ public class EmailService {
             Date currentDate = Date.valueOf(LocalDate.now());
 
             //Check if the last update for companies was more than 'daysAfter' ago
-            if (ChronoUnit.DAYS.between(dateUpdated.toLocalDate(), currentDate.toLocalDate()) >= daysAfter) {
+            if (ChronoUnit.DAYS.between(dateUpdated.toLocalDate(), currentDate.toLocalDate()) >= daysAfter && !batchUpdater.isUpdating()) {
+                batchUpdater.setUpdating(true);
+                batchUpdaterRepository.save(batchUpdater);
                 constructCompaniesFromJson(batchUpdater);
             } else {
                 System.out.println("BatchUpdater date not reached yet... next update=" + dateUpdated.toLocalDate().plus(daysAfter, ChronoUnit.DAYS));
@@ -808,6 +814,7 @@ public class EmailService {
         companyRepository.deleteAll(removedCompanies);
 
         batchUpdater.setDateUpdated(Date.valueOf(returnDateWithTime()));
+        batchUpdater.setUpdating(false);
         batchUpdaterRepository.save(batchUpdater);
     }
     public void saveCompanies(List<Company> companies) {

@@ -19,4 +19,5 @@ public class BatchUpdater implements Serializable {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     private Date dateUpdated;
+    private boolean updating;
 }
