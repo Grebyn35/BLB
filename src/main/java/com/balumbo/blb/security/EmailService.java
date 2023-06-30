@@ -52,7 +52,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
-@EnableAsync
 public class EmailService {
 
     static String urlPath = "https://balumbo.herokuapp.com";
