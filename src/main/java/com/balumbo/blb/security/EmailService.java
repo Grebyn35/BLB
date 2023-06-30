@@ -769,13 +769,12 @@ public class EmailService {
         final String baseUrl = "https://www.allabolag.se/lista/aktiebolag/24";
         List<String> countyPaths = returnCountyPath();
         List<String> branchPaths = returnBranchPath();
+        ArrayList<Company> companies = new ArrayList<>();
         ArrayList<String> orgNoList = new ArrayList<>();
         int totalResults = getTotalHits(baseUrl);
 
         for (int i = 0; i < countyPaths.size(); i++) {
             for (int j = 0; j < branchPaths.size(); j++) {
-                ArrayList<Company> companies = new ArrayList<>();
-
                 String countyPath = countyPaths.get(i).replaceAll("Ä", "%C3%84")
                         .replaceAll("Å", "%C3%85")
                         .replaceAll("Ö", "%C3%96");
@@ -794,8 +793,6 @@ public class EmailService {
                 } else {
                     companies.addAll(getCompaniesFromUrlDetailedByRevenue(url));
                 }
-
-                saveCompanies(companies);
                 orgNoList.addAll(companies.stream()
                         .map(Company::getOrgNo)
                         .collect(Collectors.toList()));
@@ -803,7 +800,7 @@ public class EmailService {
                 System.gc();
             }
         }
-
+        saveCompanies(companies);
         // Check if there are any REMOVED old companies from last update batch
         List<Company> removedCompanies = companyRepository.findAllByOrgNoNotIn(orgNoList);
 
