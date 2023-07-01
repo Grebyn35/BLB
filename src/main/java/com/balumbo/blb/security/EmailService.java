@@ -115,7 +115,7 @@ public class EmailService {
             User user = userRepository.findById(mailLists.get(i).getUserId());
             if(!user.isError()){
                 if(isWithinWorkingHours()){
-                    applicationEventPublisher.publishEvent(new HandleMailListEvent(mailLists.get(i)));
+                    //applicationEventPublisher.publishEvent(new HandleMailListEvent(mailLists.get(i)));
                 }
             }
             else{
@@ -130,7 +130,7 @@ public class EmailService {
             User user = userRepository.findById(sequenceLists.get(i).getUserId());
             if(!user.isError()){
                 if(isWithinWorkingHours()){
-                    applicationEventPublisher.publishEvent(new HandleSequenceEvent(sequenceLists.get(i)));
+                    //applicationEventPublisher.publishEvent(new HandleSequenceEvent(sequenceLists.get(i)));
                 }
             }
             else{
@@ -142,50 +142,50 @@ public class EmailService {
     public void updateCompanyBatchList() throws LoginException, IOException, InterruptedException {
         BatchUpdater batchUpdater = batchUpdaterRepository.findAll().get(0);
         //This is if there hasn't been any previous calls for updating the companies database
-        if(batchUpdater.getDateUpdated()==null){
-            constructCompaniesFromJson(batchUpdater);
-        }
-        else{
-            Date dateUpdated = Date.valueOf(batchUpdater.getDateUpdated().toString()); // Your java.sql.Date here.
-            long daysAfter = 30; // The number of days to check.
-            Date currentDate = Date.valueOf(LocalDate.now());
-
-            //Check if the last update for companies was more than 'daysAfter' ago
-            if (ChronoUnit.DAYS.between(dateUpdated.toLocalDate(), currentDate.toLocalDate()) >= daysAfter) {
-                if(!batchUpdater.isUpdating()){
-                    batchUpdater.setUpdating(true);
-                    batchUpdaterRepository.save(batchUpdater);
-                    constructCompaniesFromJson(batchUpdater);
-                }
-                else{
-                    System.out.println("company batch is already updating...");
-                }
-            } else {
-                System.out.println("BatchUpdater date not reached yet... next update=" + dateUpdated.toLocalDate().plus(daysAfter, ChronoUnit.DAYS));
-            }
-        }
+        //if(batchUpdater.getDateUpdated()==null){
+        //    constructCompaniesFromJson(batchUpdater);
+        //}
+        //else{
+        //    Date dateUpdated = Date.valueOf(batchUpdater.getDateUpdated().toString()); // Your java.sql.Date here.
+        //    long daysAfter = 30; // The number of days to check.
+        //    Date currentDate = Date.valueOf(LocalDate.now());
+//
+        //    //Check if the last update for companies was more than 'daysAfter' ago
+        //    if (ChronoUnit.DAYS.between(dateUpdated.toLocalDate(), currentDate.toLocalDate()) >= daysAfter) {
+        //        if(!batchUpdater.isUpdating()){
+        //            batchUpdater.setUpdating(true);
+        //            batchUpdaterRepository.save(batchUpdater);
+        //            constructCompaniesFromJson(batchUpdater);
+        //        }
+        //        else{
+        //            System.out.println("company batch is already updating...");
+        //        }
+        //    } else {
+        //        System.out.println("BatchUpdater date not reached yet... next update=" + dateUpdated.toLocalDate().plus(daysAfter, ChronoUnit.DAYS));
+        //    }
+        //}
     }
     @Scheduled(fixedRate = 60000)
     public void updateInfo() throws InterruptedException {
         //Update companies older than 100 days
-        LocalDate daysAgo = LocalDate.now().minusDays(100);
-        ArrayList<Company> companies = companyRepository.findCompaniesOlderThanForInfo(Date.valueOf(daysAgo), PageRequest.of(0, 20));
-        for(int i = 0; i<companies.size();i++){
-            System.out.println("fetching info for " + companies.get(i).getOrgNo() + "...");
-            getCmpInfo(companies.get(i));
-            Thread.sleep(500);
-        }
+        //LocalDate daysAgo = LocalDate.now().minusDays(100);
+        //ArrayList<Company> companies = companyRepository.findCompaniesOlderThanForInfo(Date.valueOf(daysAgo), PageRequest.of(0, 20));
+        //for(int i = 0; i<companies.size();i++){
+        //    System.out.println("fetching info for " + companies.get(i).getOrgNo() + "...");
+        //    getCmpInfo(companies.get(i));
+        //    Thread.sleep(500);
+        //}
     }
     @Scheduled(fixedRate = 60000)
     public void updateWebsite() throws InterruptedException, IOException, LoginException {
         //Update companies older than 100 days
-        LocalDate daysAgo = LocalDate.now().minusDays(200);
-        ArrayList<Company> companies = companyRepository.findCompaniesOlderThanForWebsite(Date.valueOf(daysAgo), PageRequest.of(0, 10));
-        for(int i = 0; i<companies.size();i++){
-            System.out.println("fetching website for " + companies.get(i).getOrgNo() + "...");
-            getCmpWebsiteEmail(companies.get(i));
-            Thread.sleep(5000);
-        }
+        //LocalDate daysAgo = LocalDate.now().minusDays(200);
+        //ArrayList<Company> companies = companyRepository.findCompaniesOlderThanForWebsite(Date.valueOf(daysAgo), PageRequest.of(0, 10));
+        //for(int i = 0; i<companies.size();i++){
+        //    System.out.println("fetching website for " + companies.get(i).getOrgNo() + "...");
+        //    getCmpWebsiteEmail(companies.get(i));
+        //    Thread.sleep(5000);
+        //}
     }
     //
 
