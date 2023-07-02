@@ -143,7 +143,7 @@ public class EmailService {
         BatchUpdater batchUpdater = batchUpdaterRepository.findAll().get(0);
         //This is if there hasn't been any previous calls for updating the companies database
         if(batchUpdater.getDateUpdated()==null){
-            constructCompaniesFromJson(batchUpdater);
+            constructCompaniesFromJson();
         }
         else{
             Date dateUpdated = Date.valueOf(batchUpdater.getDateUpdated().toString()); // Your java.sql.Date here.
@@ -155,7 +155,7 @@ public class EmailService {
                 if(!batchUpdater.isUpdating()){
                     batchUpdater.setUpdating(true);
                     batchUpdaterRepository.save(batchUpdater);
-                    constructCompaniesFromJson(batchUpdater);
+                    constructCompaniesFromJson();
                 }
                 else{
                     System.out.println("company batch is already updating...");
@@ -776,7 +776,7 @@ public class EmailService {
 
     //Handles all the leads generation functions
     @Transactional
-    public void constructCompaniesFromJson(BatchUpdater batchUpdater) throws IOException, LoginException, InterruptedException {
+    public void constructCompaniesFromJson() throws IOException, LoginException, InterruptedException {
         final String baseUrl = "https://www.allabolag.se/lista/aktiebolag/24";
         List<String> countyPaths = returnCountyPath();
         List<String> branchPaths = returnBranchPath();
@@ -818,7 +818,7 @@ public class EmailService {
         // This might cause an error, as it uses delete
         companyRepository.deleteAll(removedCompanies);
 
-        batchUpdater = batchUpdaterRepository.findAll().get(0);
+        BatchUpdater batchUpdater = batchUpdaterRepository.findAll().get(0);
         batchUpdater.setDateUpdated(Date.valueOf(returnDateWithTime()));
         batchUpdater.setUpdating(false);
         batchUpdaterRepository.save(batchUpdater);
