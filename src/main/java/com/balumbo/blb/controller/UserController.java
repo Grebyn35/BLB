@@ -7,7 +7,6 @@ import com.balumbo.blb.objects.DataRow;
 import com.balumbo.blb.objects.HeaderValues;
 import com.balumbo.blb.repository.*;
 import com.balumbo.blb.security.CustomUserDetails;
-import com.balumbo.blb.security.EmailService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.opencsv.CSVParser;
@@ -15,7 +14,6 @@ import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
 import com.opencsv.exceptions.CsvException;
-import com.opencsv.exceptions.CsvValidationException;
 import lombok.SneakyThrows;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -31,8 +29,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.annotation.PostConstruct;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import javax.mail.*;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
@@ -40,14 +36,12 @@ import javax.security.auth.login.LoginException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
-import javax.xml.crypto.Data;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.StringReader;
 import java.sql.Date;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -89,6 +83,11 @@ public class UserController {
     @GetMapping("/")
     public String home(){
         return "redirect:/user/dashboard";
+    }
+
+    @GetMapping("/test")
+    public String test(){
+        return "new-sequence";
     }
 
     @GetMapping("/user/redigera-utskick/{id}")
@@ -440,7 +439,7 @@ public class UserController {
         model.addAttribute("separator", request.getParameter("separator"));
         model.addAttribute("name", request.getParameter("name"));
         model.addAttribute("user", returnCurrentUser());
-        return "list-content";
+        return "new-list";
     }
     @PostMapping("/user/upload-list/complete")
     public String uploadListComplete(Model model, HttpServletRequest request, RedirectAttributes redirectAttributes) {
