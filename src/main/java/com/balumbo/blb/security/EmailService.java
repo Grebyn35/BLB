@@ -309,11 +309,13 @@ public class EmailService {
         ArrayList<MailRow> allMailRows = mailRowRepository.findAllByMailListIdAndError(mailList.getId(), false);
 
         boolean finished = true;
-        for(int i = 0; i<allMailRows.size();i++){
-            if(allMailRows.get(i).getSentDate() != null){
-                if(allMailRows.get(i).getSentDate().before(Date.valueOf(mailList.getDispatchDate().toLocalDate().plusDays(sequenceList.getSequenceAfterDays())))){
-                    finished = false;
-                    break;
+        if(allMailRows.size()>0) {
+            for (int i = 0; i < allMailRows.size(); i++) {
+                if (allMailRows.get(i).getSentDate() != null) {
+                    if (!allMailRows.get(i).getSentDate().after(dateBeforeXDays) && sequenceList.isStartedSending()) {
+                        finished = false;
+                        break;
+                    }
                 }
             }
         }
