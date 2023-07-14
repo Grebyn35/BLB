@@ -306,29 +306,24 @@ public class EmailService {
 
         sequenceList.setOngoing(true);
 
-        ArrayList<MailRow> allMailRows = mailRowRepository.findByMailListId(mailList.getId());
+        ArrayList<MailRow> allMailRows = mailRowRepository.findAllByMailListIdAndError(mailList.getId(), false);
 
-        boolean allSentForThisSequence = false;
-        if(allMailRows.size()>0) {
-            for (int i = 0; i < allMailRows.size(); i++) {
-                if (allMailRows.get(i).getSentDate() != null) {
-                    if (allMailRows.get(i).getSentDate().after(dateBeforeXDays) && sequenceList.isStartedSending()) {
-                        allSentForThisSequence = true;
-                    }
-                    else{
-                        allSentForThisSequence = false;
-                        break;
-                    }
+        boolean finished = true;
+        for(int i = 0; i<allMailRows.size();i++){
+            if(allMailRows.get(i).getSentDate() != null){
+                if(allMailRows.get(i).getSentDate().before(Date.valueOf(mailList.getDispatchDate().toLocalDate().plusDays(sequenceList.getSequenceAfterDays())))){
+                    finished = false;
+                    break;
                 }
             }
         }
 
         if(mailRows.size()==0){
             System.out.println("no emails to send to, all are too early");
+            sequenceList.setFinished(finished);
             sequenceList.setOngoing(false);
-            sequenceList.setFinished(allSentForThisSequence);
         }
-        sequenceListRepository.save(sequenceList);
+        sequenceList = sequenceListRepository.save(sequenceList);
 
         for(int i = 0; i<mailRows.size();i++){
             user = userRepository.findById(user.getId()).get();
@@ -347,12 +342,7 @@ public class EmailService {
                                 System.out.println("thread cancelled. shutting down running thread.");
                                 return;
                             }
-                            if(isOlderThanSequenceAge(sequenceList, mailRows.get(i))){
-                                sendSequenceEmail(mailRows.get(i), user, sequenceList, mailList);
-                            }
-                            else{
-                                continue;
-                            }
+                            sendSequenceEmail(mailRows.get(i), user, sequenceList, mailList);
                             mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
                             mailRowRepository.save(mailRows.get(i));
                             sequenceList.setStartedSending(true);
@@ -363,6 +353,10 @@ public class EmailService {
                             mailRows.get(i).setError(true);
                             mailRowRepository.save(mailRows.get(i));
                         }
+                    }
+                    else{
+                        mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
+                        mailRowRepository.save(mailRows.get(i));
                     }
                 }
                 else{
@@ -380,18 +374,6 @@ public class EmailService {
         }
         sequenceList.setOngoing(false);
         sequenceListRepository.save(sequenceList);
-    }
-    public boolean isOlderThanSequenceAge(SequenceList sequenceList, MailRow mailRow){
-        // Parse the date from a String.
-        LocalDate dateSent = LocalDate.parse(mailRow.getSentDate().toString()).plusDays(sequenceList.getSequenceAfterDays());
-        LocalDate currentDateMinusXDays = LocalDate.now();
-
-        if (dateSent.isBefore(currentDateMinusXDays) || dateSent.isEqual(currentDateMinusXDays)) {
-            return true;
-        } else {
-            return false;
-        }
-
     }
     public String returnDateWithTime(){
         java.util.Date date = new java.util.Date();
@@ -698,7 +680,7 @@ public class EmailService {
         message.setContent(replacedContent + "<br><br>" + replacedFooter + " " +  openedLink, "text/html; charset=UTF-8");
         // Send message
         Transport.send(message);
-        System.out.println("Sent message successfully for user " + user.getEmail() + ". Interval=" + mailList.getIntervalPeriod() + "s");
+        System.out.println("Sent sequence successfully for user " + user.getEmail() + ". Interval=" + mailList.getIntervalPeriod() + "s");
     }
     public ArrayList<DataRow> parseCSVRows(String completeData, int skipLines, String separator, boolean isHeader) throws IOException, CsvException {
         CSVParser csvParser = new CSVParserBuilder().withSeparator(separator.charAt(0)).build(); // custom separator

@@ -164,7 +164,7 @@
             <div class="row">
               <div class="col-md-6 mb-3">
                 <label>Sekvens efter dagar utan svar (från föregående utskick)</label>
-                <input name="sequenceAfter" th:value="${sequenceList.sequenceAfterDays}" required class="form-control" type="number">
+                <input name="sequenceAfter" min="10" th:value="${sequenceList.sequenceAfterDays}" required class="form-control" type="number">
               </div>
             </div>
           </div>
