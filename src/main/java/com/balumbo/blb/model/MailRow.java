@@ -27,5 +27,6 @@ public class MailRow implements Serializable {
     private int timesOpened;
     private Date sentDate;
     private long userId;
+    private boolean sentSequence;
 
 }

@@ -344,6 +344,7 @@ public class EmailService {
                             }
                             sendSequenceEmail(mailRows.get(i), user, sequenceList, mailList);
                             mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
+                            mailRows.get(i).setSentSequence(true);
                             mailRowRepository.save(mailRows.get(i));
                             sequenceList.setStartedSending(true);
                             sequenceListRepository.save(sequenceList);
@@ -355,6 +356,7 @@ public class EmailService {
                         }
                     }
                     else{
+                        mailRows.get(i).setSentSequence(true);
                         mailRows.get(i).setSentDate(Date.valueOf(returnDateWithTime()));
                         mailRowRepository.save(mailRows.get(i));
                     }
