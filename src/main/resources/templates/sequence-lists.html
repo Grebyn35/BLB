@@ -2,7 +2,7 @@
 
 <html lang="sv" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml">
 <head>
-    <title>Köade utskick</title>
+    <title>Sekvenser</title>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
@@ -35,14 +35,14 @@
 <div class="modal fade" id="removeListModal" tabindex="-1" aria-labelledby="removeListModal" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form class="tab-pane fade show active" th:action="@{/user/removelist}" method="post">
+            <form class="tab-pane fade show active" th:action="@{/user/removesequence}" method="post">
                 <div class="modal-header">
-                    <h5 class="modal-title">Ta bort utskick</h5>
+                    <h5 class="modal-title">Ta bort sekvens?</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="mb-0" id="removeNameText">
-                        Ta bort
+                    <p class="mb-0">
+                        Ta bort sekvens?
                     </p>
                 </div>
                 <input type="text" name="id" id="listId" style="display: none">
@@ -50,30 +50,6 @@
                     <button type="button" class="btn btn-light border btn-sm" data-bs-dismiss="modal">Avbryt</button>
                     <button type="submit" class="btn btn-primary btn-sm">
                         Ta bort
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-<div class="modal fade" id="completeListModal" tabindex="-1" aria-labelledby="completeListModal" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <form class="tab-pane fade show active" th:action="@{/user/mark-complete}" method="post">
-                <div class="modal-header">
-                    <h5 class="modal-title">Markera som färdig</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="mb-0" id="completeNameText">
-                        Ta bort
-                    </p>
-                </div>
-                <input type="text" name="id" id="completeListId" style="display: none">
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-light border btn-sm" data-bs-dismiss="modal">Avbryt</button>
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        Verkställ
                     </button>
                 </div>
             </form>
@@ -181,57 +157,43 @@
 <div class="container">
     <div class="w-100">
         <div class="px-lg-4 px-sm-3 px-2 py-lg-5 py-sm-4 py-3">
+            <div class="mb-3 d-flex flex-wrap">
+                <a th:href="'/user/skapa-sekvens/' + ${mailList.id}">
+                    <button class="btn btn-success btn-sm">Skapa sekvens</button>
+                </a>
+            </div>
             <div class="tableSearch">
                 <table class="table fs-sm">
                     <thead>
                     <tr class="d-none d-lg-table-row">
-                        <th>Namn</th>
                         <th>Datum för utskick</th>
                         <th>Pågående</th>
                         <th class="text-end">Handlingar</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="queuedList : ${queuedLists}">
-                        <td class="pe-1" th:text="${queuedList.fileName}">
+                    <tr th:each="list : ${lists}">
+                        <td class="pe-1">
+                            <span class="badge shadow-sm border bg-secondary text-body">
+                                <span th:text="${list.sendingDate}">johannes.eriksson@gmail.com</span>
+                            </span>
                         </td>
                         <td class="d-none d-lg-table-cell">
-                                    <span class="badge shadow-sm border bg-secondary text-body">
-                                        <span th:text="${queuedList.dispatchDate}">johannes.eriksson@gmail.com</span>
-                                    </span>
-                        </td>
-                        <td class="d-none d-lg-table-cell">
-                            <i th:if="${queuedList.ongoing}" data-bs-toggle="tooltip" data-bs-placement="top" title="Utskicket är pågående och skickar till samtliga kontakter" class="bx bxs-check-circle fs-lg text-success me-1"></i>
-                            <i th:if="${!queuedList.ongoing}" data-bs-toggle="tooltip" data-bs-placement="top" title="Utskicket väntar på att startdatum för utskick ska nås" class="bx bxs-x-circle fs-lg text-warning me-1"></i>
+                            <i th:if="${list.ongoing}" data-bs-toggle="tooltip" data-bs-placement="top" title="Sekvensen skickar till samtliga kontakter" class="bx bxs-check-circle fs-lg text-success me-1"></i>
+                            <i th:if="${!list.ongoing}" data-bs-toggle="tooltip" data-bs-placement="top" title="Sekvensen väntar på att startdatum för utskick ska nås" class="bx bxs-x-circle fs-lg text-warning me-1"></i>
                         </td>
                         <td class="px-0" style="max-width: fit-content !important;">
                             <div class="d-flex justify-content-end gap-1 pe-2">
                                 <button class="btn btn-sm btn-light border p-0 shadow-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Redigera">
-                                    <a th:href="'/user/redigera-utskick/' + ${queuedList.id}"><i class="bx bxs-edit p-1" style="font-size: 0.9rem" th:data-listid="${queuedList.id}"></i></a>
-                                </button>
-                                <div class="border-start d-lg-none"></div>
-                                <button class="btn btn-sm btn-light border p-0 shadow-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Ladda ner som CSV">
-                                    <a th:href="'/user/ladda-ner-utskick/' + ${queuedList.id}"><i class="bx bxs-download p-1" style="font-size: 0.9rem" th:data-listid="${queuedList.id}"></i></a>
+                                    <a th:href="'/user/redigera-sekvens/' + ${list.id}"><i class="bx bxs-edit p-1" style="font-size: 0.9rem" th:data-listid="${list.id}"></i></a>
                                 </button>
                                 <div class="border-start d-lg-none"></div>
                                 <button class="btn btn-sm btn-light border p-0 shadow-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Skicka ett test mejl till mig själv">
-                                    <a th:href="'/user/test-mejl/' + ${queuedList.id}"><i class="bx bxs-envelope p-1" style="font-size: 0.9rem" th:data-listid="${queuedList.id}"></i></a>
-                                </button>
-                                <div class="border-start d-lg-none"></div>
-                                <button class="btn btn-sm btn-light border p-0 shadow-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Visa sekvenser">
-                                    <a th:href="'/user/visa-sekvenser/' + ${queuedList.id}"><i class="bx bx-reset p-1" style="font-size: 0.9rem"></i></a>
-                                </button>
-                                <div class="border-start d-lg-none"></div>
-                                <button class="btn btn-sm btn-light border p-0 shadow-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Markera som färdig">
-                                    <i class="bx bx-check p-1" style="font-size: 0.9rem " th:data-listid="${queuedList.id}" th:data-listname="${queuedList.fileName}" data-bs-toggle="modal" data-bs-target="#completeListModal"></i>
+                                    <a th:href="'/user/test-mejl-sekvens/' + ${list.id}"><i class="bx bxs-envelope p-1" style="font-size: 0.9rem" th:data-listid="${list.id}"></i></a>
                                 </button>
                                 <div class="border-start d-lg-none"></div>
                                 <button class="btn btn-sm btn-light border p-0 shadow-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Radera utskick">
-                                    <i class="bx bx-x p-1" style="font-size: 0.9rem " th:data-listid="${queuedList.id}" th:data-listname="${queuedList.fileName}" data-bs-toggle="modal" data-bs-target="#removeListModal"></i>
-                                </button>
-                                <div class="border-start d-lg-none"></div>
-                                <button class="btn btn-sm btn-light border p-0 shadow-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Öppna lista">
-                                    <a th:href="'/user/lista-rader/' + ${queuedList.id} + '?page=0'"><i class="bx bx-folder p-1" style="font-size: 0.9rem" th:data-listid="${queuedList.id}"></i></a>
+                                    <i class="bx bx-x p-1" style="font-size: 0.9rem " th:data-listid="${list.id}" data-bs-toggle="modal" data-bs-target="#removeListModal"></i>
                                 </button>
                             </div>
                         </td>
@@ -251,19 +213,8 @@
 <script src="/js/main.js"></script>
 <script>
     $('#removeListModal').on('show.bs.modal', function(e) {
-
         let id = $(e.relatedTarget).data('listid');
-        let name = $(e.relatedTarget).data('listname');
-        document.getElementById("removeNameText").textContent = "Ta bort '" + name + "'?"
         document.getElementById("listId").value = id
-
-    });
-    $('#completeListModal').on('show.bs.modal', function(e) {
-
-        let id = $(e.relatedTarget).data('listid');
-        let name = $(e.relatedTarget).data('listname');
-        document.getElementById("completeNameText").textContent = "Markera utskick '" + name + "' som färdig?"
-        document.getElementById("completeListId").value = id
 
     });
 </script>
@@ -283,10 +234,10 @@
     });
 </script>
 <script th:if="${uploaded==true}">
-    alert("Lista uppladdad")
+    alert("Sekvens uppladdad")
 </script>
 <script th:if="${edited==true}">
-    alert("Lista uppdaterad")
+    alert("Sekvens uppdaterad")
 </script>
 <script th:if="${sentTest==true}">
     alert("Ett test mejl har sickats till inloggad epostadress")

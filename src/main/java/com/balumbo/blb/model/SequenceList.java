@@ -26,4 +26,6 @@ public class SequenceList implements Serializable {
     private boolean startedSending;
     private boolean finished;
 
+    private Date sendingDate;
+
 }

@@ -221,6 +221,10 @@
                                     <i class="bx bxs-send p-1" style="font-size: 0.9rem " th:data-listid="${completedList.id}" th:data-listname="${completedList.fileName}" data-bs-toggle="modal" data-bs-target="#reinstateListModal"></i>
                                 </button>
                                 <div class="border-start d-lg-none"></div>
+                                <button class="btn btn-sm btn-light border p-0 shadow-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Visa sekvenser">
+                                    <a th:href="'/user/visa-sekvenser/' + ${completedList.id}"><i class="bx bx-reset p-1" style="font-size: 0.9rem"></i></a>
+                                </button>
+                                <div class="border-start d-lg-none"></div>
                                 <button class="btn btn-sm btn-light border p-0 shadow-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Radera utskick">
                                     <i class="bx bx-x p-1" style="font-size: 0.9rem " th:data-listid="${completedList.id}" th:data-listname="${completedList.fileName}" data-bs-toggle="modal" data-bs-target="#removeListModal"></i>
                                 </button>
@@ -288,6 +292,9 @@
 </script>
 <script th:if="${uploaded==true}">
     alert("Lista uppladdad")
+</script>
+<script th:if="${edited==true}">
+    alert("Lista uppdaterad")
 </script>
 <script th:if="${sentTest==true}">
     alert("Ett test mejl har sickats till inloggad epostadress")

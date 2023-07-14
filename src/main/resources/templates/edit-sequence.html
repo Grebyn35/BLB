@@ -2,7 +2,7 @@
 
 <html lang="sv" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.w3.org/1999/xhtml">
 <head>
-  <title>Redigera Utskick</title>
+  <title>Ny sekvens</title>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
@@ -133,126 +133,46 @@
 <div class="container">
   <div class="d-flex">
     <div class="w-100">
-      <form th:action="'/user/edit-list/' + ${mailList.id}" method="post">
+      <form th:action="'/user/redigera-sekvens/' + ${sequenceList.id}" method="post">
         <div class="px-lg-4 px-sm-3 px-2 py-lg-5 py-sm-4 py-5">
-          <div class="mb-3">
-            <label class="form-label" for="dispatchName">Namn på utskick</label>
-            <input name="name" id="dispatchName" th:value="${mailList.fileName}" required class="form-control" type="text">
-          </div>
-          <div class="mb-3">
-            <label class="form-label" for="dateInput">Startdatum för utskick</label>
-            <input name="date" th:value="${mailList.dispatchDate}" id="dateInput" required class="form-control" type="date">
-          </div>
-          <div class="mb-3">
-            <label class="form-label" for="interval">Interval (s)</label>
-            <input name="interval" id="interval" th:value="${mailList.intervalPeriod}" required class="form-control" type="text">
-          </div>
-          <div class="mb-3 d-flex flex-wrap">
-            <label class="form-label me-3" for="variable">Tillgängliga variabler:</label>
-            <p id="variable" style="font-size: 0.875rem" class="me-2" th:each="header : ${headers}" th:text="'{' + ${header.name} + '}'"></p>
-          </div>
-          <div class="row">
-            <div class="col-xl-6">
-              <label>Titel</label>
-              <input th:value="${mailList.title}" name="title" oninput="mirrorText(this)" required class="w-100 form-control" type="text">
+          <div class="sequence">
+            <div class="mb-3 d-flex flex-wrap">
+              <label class="form-label me-3" for="variable">Tillgängliga variabler:</label>
+              <p id="variable" style="font-size: 0.875rem" class="me-2" th:each="header : ${headers}" th:text="'{' + ${header.name} + '}'"></p>
             </div>
-            <div class="col-xl-6">
-              <label>Mottagaren ser (exempelvärde från uppladdad fil)</label>
-              <input readonly class="w-100 form-control" type="text">
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-xl-6">
-              <label>Huvud innehåll</label>
-              <div th:utext="${mailList.mainContent}" contenteditable="true" type="text/html; charset=utf-8" oninput="mirrorText(this)" name="mainContentHolder" required class="w-100 form-control content" cols="30" rows="10"></div>
-            </div>
-            <div class="col-xl-6">
-              <label></label>
-              <div class="w-100"></div>
-              <textarea name="mainContent" style="display: none" cols="30" rows="10"></textarea>
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-xl-6">
-              <label>Footer innehåll</label>
-              <div th:utext="${mailList.footerContent}" contenteditable="true" type="text/html; charset=utf-8" name="footerContentHolder" oninput="mirrorText(this)" class="w-100 form-control content" cols="30" rows="10"></div>
-            </div>
-            <div class="col-xl-6">
-              <label></label>
-              <div class="w-100"></div>
-              <textarea name="footerContent" style="display: none" cols="30" rows="10"></textarea>
-            </div>
-          </div>
-          <!--This is to add a sequence placeholder-->
-          <div class="addSequenceDiv"></div>
-          <div class="insertedSequence" th:each="sequence : ${sequenceList}">
-            <hr class="mt-3 mb-3" style="border: none;height: 3px;background-color: #5e5e5e;">
-            <label>Sekvens</label>
             <div class="row mb-3">
               <div class="col-xl-6">
-                <input name="titleSequence[]" th:value="${sequence.title}" oninput="mirrorTextSequence(this)" required class="w-100 form-control" type="text">
+                <label>Titel</label>
+                <input name="title" th:value="${sequenceList.title}" oninput="mirrorTextTitle(this)" required class="w-100 form-control" type="text">
               </div>
               <div class="col-xl-6">
-                <input readonly class="w-100 form-control" type="text">
+                <label>Mottagaren ser (exempelvärde från uppladdad fil)</label>
+                <input readonly id="titleToBeReplaced" class="w-100 form-control" type="text">
               </div>
             </div>
             <div class="row">
               <div class="col-xl-6">
-                <div th:utext="${sequence.mainContent}" contenteditable="true" type="text/html; charset=utf-8" name="sequenceContentHolder[]" oninput="mirrorTextSequence(this)" required class="w-100 form-control content" cols="30" rows="10"></div>
+                <label>Huvud innehåll</label>
+                <div oninput="mirrorTextContent(this)" name="contentHolder" th:utext="${sequenceList.mainContent}" contenteditable="true" type="text/html; charset=utf-8" required class="w-100 form-control content" cols="30" rows="10"></div>
               </div>
               <div class="col-xl-6">
-                <div class="w-100"></div>
-                <textarea name="sequenceContent[]" style="display: none" cols="30" rows="10"></textarea>
-                <input type="text" th:value="${sequence.finished}" name="finished[]" style="display: none">
-                <input type="text" th:value="${sequence.startedSending}" name="startedSending[]" style="display: none">
+                <label></label>
+                <div class="w-100" id="contentToBeReplaced"></div>
+                <textarea name="content" id="contentToBeReplacedTextArea" style="display: none" cols="30" rows="10"></textarea>
               </div>
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
                 <label>Sekvens efter dagar utan svar (från föregående utskick)</label>
-                <input th:value="${sequence.sequenceAfterDays}" name="sequenceAfter[]" required class="form-control" type="number">
-              </div>
-              <div class="col-md-6 mb-3 d-flex align-items-end">
-                <button class="btn btn-danger btn-sm mt-4" onclick="removeSequence(this)">Ta bort sekvens</button>
+                <input name="sequenceAfter" th:value="${sequenceList.sequenceAfterDays}" required class="form-control" type="number">
               </div>
             </div>
           </div>
           <div class="mb-3 d-flex flex-wrap">
-            <button class="btn btn-info btn-sm me-2" type="button" id="addSequence">Lägg till sekvens</button>
-            <button class="btn btn-success btn-sm" type="submit">Spara</button>
+            <button class="btn btn-success btn-sm" type="submit">Spara sekvens</button>
           </div>
         </div>
       </form>
-    </div>
-  </div>
-  <div class="sequence" style="display: none">
-    <hr class="mt-3 mb-3" style="border: none;height: 3px;background-color: #5e5e5e;">
-    <label>Sekvens</label>
-    <div class="row mb-3">
-      <div class="col-xl-6">
-        <input name="titleSequence[]" oninput="mirrorTextSequence(this)" required class="w-100 form-control" type="text">
-      </div>
-      <div class="col-xl-6">
-        <input readonly class="w-100 form-control" type="text">
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-xl-6">
-        <div oninput="mirrorTextSequence(this)" contenteditable="true" type="text/html; charset=utf-8" required name="sequenceContentHolder[]" class="w-100 form-control content" cols="30" rows="10"></div>
-      </div>
-      <div class="col-xl-6">
-        <div class="w-100"></div>
-        <textarea name="sequenceContent[]" style="display: none" cols="30" rows="10"></textarea>
-      </div>
-    </div>
-    <div class="row">
-      <div class="col-md-6 mb-3">
-        <label>Sekvens startdatum (utan svar från första utskick)</label>
-        <input name="sequenceAfter[]" required class="form-control" type="number">
-      </div>
-      <div class="col-md-6 mb-3 d-flex align-items-end">
-        <button class="btn btn-danger btn-sm mt-4" onclick="removeSequence(this)">Ta bort sekvens</button>
-      </div>
     </div>
   </div>
 </div>
@@ -264,29 +184,26 @@
 <script src="/js/main.js"></script>
 
 <script>
+  //Set todays date
+  var date = new Date();
+  var day = String(date.getDate()).padStart(2, '0');
+  var month = String(date.getMonth() + 1).padStart(2, '0'); //January is 0!
+  var year = date.getFullYear();
+
+  var today = year + '-' + month + '-' + day;
+
+  document.getElementById('dateInput').value = today;
+</script>
+
+<script>
   document.addEventListener('DOMContentLoaded', (event) => {
     const inputElements = document.querySelectorAll('input[name="title"]');
-    inputElements.forEach(mirrorText);
+    inputElements.forEach(mirrorTextTitle);
   });
 
   document.addEventListener('DOMContentLoaded', (event) => {
-    const inputElements = document.querySelectorAll('div[name="footerContentHolder"]');
-    inputElements.forEach(mirrorText);
-  });
-
-  document.addEventListener('DOMContentLoaded', (event) => {
-    const textareaElements = document.querySelectorAll('div[name="mainContentHolder"]');
-    textareaElements.forEach(mirrorText);
-  });
-
-  document.addEventListener('DOMContentLoaded', (event) => {
-    const inputElements = document.querySelectorAll('input[name="titleSequence[]"]');
-    inputElements.forEach(mirrorTextSequence);
-  });
-
-  document.addEventListener('DOMContentLoaded', (event) => {
-    const textareaElements = document.querySelectorAll('div[name="sequenceContentHolder[]"]');
-    textareaElements.forEach(mirrorTextSequence);
+    const textareaElements = document.querySelectorAll('div[name="contentHolder"]');
+    textareaElements.forEach(mirrorTextContent);
   });
 </script>
 
@@ -299,63 +216,26 @@
   headers = JSON.parse("[" + headers + "]");
   firstRow = JSON.parse("[" + firstRow + "]");
 
-  function mirrorText(e){
+  function mirrorTextTitle(e){
     let text = e.value
-    let sibling = e.parentElement.nextElementSibling.firstElementChild.nextElementSibling
-    if(sibling.tagName == "DIV"){
-      text = e.innerHTML
+    for(let i = 0; i<headers.length;i++){
+      var pattern = "{" + headers[i].name + "}";
+      var regex = new RegExp(pattern, 'g');
+      text = text.replace(regex, firstRow[i].name);
     }
-
+    document.getElementById("titleToBeReplaced").value = text;
+  }
+  function mirrorTextContent(e){
+    let text = e.innerHTML
     let textBeforeReplaced = text
     for(let i = 0; i<headers.length;i++){
       var pattern = "{" + headers[i].name + "}";
       var regex = new RegExp(pattern, 'g');
       text = text.replace(regex, firstRow[i].name);
     }
-    if(sibling.tagName == "DIV"){
-      //let htmlText = text.replace(/\n/g, '<br>'); // Replace newline characters with <br> tags
-      sibling.innerHTML = text;
-      sibling.nextElementSibling.textContent = textBeforeReplaced;
-    }
-    else{
-      sibling.value = text;
-    }
+    document.getElementById("contentToBeReplaced").innerHTML = text;
+    document.getElementById("contentToBeReplacedTextArea").textContent = textBeforeReplaced;
   }
-  function mirrorTextSequence(e){
-    let text = e.value
-    let sibling = e.parentElement.nextElementSibling.firstElementChild
-    if(sibling.tagName == "DIV"){
-      text = e.innerHTML
-    }
-    let textBeforeReplaced = text
-    for(let i = 0; i<headers.length;i++){
-      var pattern = "{" + headers[i].name + "}";
-      var regex = new RegExp(pattern, 'g');
-      text = text.replace(regex, firstRow[i].name);
-    }
-    if(sibling.tagName == "DIV"){
-      //let htmlText = text.replace(/\n/g, '<br>'); // Replace newline characters with <br> tags
-      sibling.innerHTML = text;
-      sibling.nextElementSibling.textContent = textBeforeReplaced;
-    }
-    else{
-      sibling.value = text;
-    }
-  }
-  function removeSequence(e){
-    e.parentElement.parentElement.parentElement.remove();
-  }
-  const newSequence = document.getElementById('addSequence');
-  newSequence.addEventListener('click', function() {
-    if(document.getElementsByClassName("insertedSequence").length>0){
-      console.log("hasSequence")
-      $(".sequence:last").clone().insertAfter("div.insertedSequence:last").css({"display": ""}).addClass("insertedSequence");
-    }
-    else{
-      console.log("no sequence")
-      $(".sequence:last").clone().insertAfter("div.addSequenceDiv").css({"display": ""}).addClass("insertedSequence");
-    }
-  });
 
   document.getElementById('file').addEventListener('change', function(e) {
     var fileNameByInput = e.target.files[0].name;

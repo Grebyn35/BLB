@@ -85,9 +85,44 @@ public class UserController {
         return "redirect:/user/dashboard";
     }
 
-    @GetMapping("/test")
-    public String test(){
+    @GetMapping("/user/skapa-sekvens/{id}")
+    public String newSequence(Model model, @PathVariable long id) throws IOException, CsvException {
+        MailList mailList = mailListRepository.findById(id);
+        ArrayList<MailRow> mailRows = mailRowRepository.findByMailListId(mailList.getId());
+        String completeData = "";
+        for(int i = 0; i<mailRows.size();i++){
+            completeData += mailRows.get(i).getDataRow() + "\n";
+        }
+
+        ArrayList<DataRow> headerValues = parseCSVRows(completeData, 0, mailList.getSeparatorValue(), true);
+        ArrayList<DataRow> firstRow = parseCSVRows(completeData, 1, mailList.getSeparatorValue(), false);
+
+        model.addAttribute("headers", headerValues);
+        model.addAttribute("headersJson", parseDataRowToJson(headerValues));
+        model.addAttribute("firstRowJson", parseDataRowToJson(firstRow));
+        model.addAttribute("user", returnCurrentUser());
+        model.addAttribute("mailList", mailList);
         return "new-sequence";
+    }
+
+    @PostMapping("/user/skapa-sekvens/{id}")
+    public String newSequencePost(Model model, @PathVariable long id, HttpServletRequest request, RedirectAttributes redirectAttributes) throws IOException, CsvException {
+        MailList mailList = mailListRepository.findById(id);
+        String title = request.getParameter("title");
+        String content = request.getParameter("content");
+        int sequenceAfter = Integer.parseInt(request.getParameter("sequenceAfter"));
+
+        SequenceList sequenceList = new SequenceList();
+        sequenceList.setMailListId(id);
+        sequenceList.setSequenceAfterDays(sequenceAfter);
+        sequenceList.setMainContent(content);
+        sequenceList.setTitle(title);
+        sequenceList.setSendingDate(Date.valueOf(mailList.getDispatchDate().toLocalDate().plusDays(sequenceAfter)));
+
+        redirectAttributes.addFlashAttribute("uploaded", true);
+
+        sequenceListRepository.save(sequenceList);
+        return "redirect:/user/visa-sekvenser/" + mailList.getId();
     }
 
     @GetMapping("/user/redigera-utskick/{id}")
@@ -122,12 +157,72 @@ public class UserController {
         model.addAttribute("sequenceList", sequenceLists);
         return "edit-list";
     }
+    @GetMapping("/user/redigera-sekvens/{id}")
+    public String editSequence(@PathVariable long id, Model model){
+        Pageable pageable = PageRequest.of(0, 1);
+        User user = returnCurrentUser();
+        model.addAttribute("user", user);
+        SequenceList sequenceLists = sequenceListRepository.findById(id);
+        MailList mailList = mailListRepository.findById(sequenceLists.getMailListId());
+        Page<MailRow> mailRow = mailRowRepository.findByMailListIdAndIsHeader(mailList.getId(), true, pageable);
+        Page<MailRow> firstRow = mailRowRepository.findByMailListIdAndIsHeader(mailList.getId(), false, pageable);
+        ArrayList<DataRow> headerValues = new ArrayList<>();
+        ArrayList<DataRow> dataRows = new ArrayList<>();
+        String[] mailRows = mailRow.getContent().get(0).getDataRow().split(",");
+        String[] firstRowString = firstRow.getContent().get(0).getDataRow().split(",");
+        for(int i = 0; i<mailRows.length;i++){
+            DataRow headerValue = new DataRow();
+            headerValue.setIndex(i);
+            headerValue.setName(mailRows[i].replaceAll(" ", "").toLowerCase());
+            headerValues.add(headerValue);
+        }
+        for(int i = 0; i<firstRowString.length;i++){
+            DataRow dataRow = new DataRow();
+            dataRow.setIndex(i);
+            dataRow.setName(firstRowString[i]);
+            dataRows.add(dataRow);
+        }
+        model.addAttribute("headersJson", parseDataRowToJson(headerValues));
+        model.addAttribute("firstRowJson", parseDataRowToJson(dataRows));
+        model.addAttribute("headers", headerValues);
+        model.addAttribute("mailList", mailList);
+        model.addAttribute("sequenceList", sequenceLists);
+        return "edit-sequence";
+    }
+    @PostMapping("/user/redigera-sekvens/{id}")
+    public String editSequence(@PathVariable long id, HttpServletRequest request, RedirectAttributes redirectAttributes){
+        String title = request.getParameter("title");
+        String content = request.getParameter("content");
+        int sequenceAfter = Integer.parseInt(request.getParameter("sequenceAfter"));
+
+        SequenceList sequenceList = sequenceListRepository.findById(id);
+        MailList mailList = mailListRepository.findById(sequenceList.getMailListId());
+        sequenceList.setSequenceAfterDays(sequenceAfter);
+        sequenceList.setMainContent(content);
+        sequenceList.setTitle(title);
+        sequenceList.setSendingDate(Date.valueOf(mailList.getDispatchDate().toLocalDate().plusDays(sequenceAfter)));
+
+        redirectAttributes.addFlashAttribute("edited", true);
+
+        sequenceListRepository.save(sequenceList);
+        return "redirect:/user/visa-sekvenser/" + mailList.getId();
+    }
     @GetMapping("/user/dashboard")
     public String dashboard(Model model){
         User user = returnCurrentUser();
         addDashboardAttributes(model, user);
         model.addAttribute("user", user);
         return "dashboard";
+    }
+
+    @GetMapping("/user/visa-sekvenser/{id}")
+    public String sequences(Model model, @PathVariable long id){
+        MailList mailList = mailListRepository.findById(id);
+        ArrayList<SequenceList> sequenceLists = sequenceListRepository.findByMailListId(id);
+        model.addAttribute("lists", sequenceLists);
+        model.addAttribute("user", returnCurrentUser());
+        model.addAttribute("mailList", mailList);
+        return "sequence-lists";
     }
     @GetMapping("/user/lista-rader/{id}")
     public String listRows(Model model, @PathVariable long id, @RequestParam("page") int page){
@@ -187,6 +282,21 @@ public class UserController {
             redirectAttributes.addFlashAttribute("sentTest", false);
         }
         return "redirect:/user/koade-utskick?page=0";
+    }
+    @GetMapping("/user/test-mejl-sekvens/{id}")
+    public String testMailSequence(Model model, @PathVariable long id, RedirectAttributes redirectAttributes, HttpServletRequest request) throws MessagingException, IOException, CsvException {
+        User user = returnCurrentUser();
+        SequenceList sequenceList = sequenceListRepository.findById(id);
+        MailList mailList = mailListRepository.findById(sequenceList.getMailListId());
+        MailRow mailRow = mailRowRepository.findFirstByMailListIdAndIsHeader(mailList.getId(), false);
+        if(emailValidation(user)){
+            sendTestEmailToSelfSequence(mailRow, user, sequenceList, request, mailList);
+            redirectAttributes.addFlashAttribute("sentTest", true);
+        }
+        else{
+            redirectAttributes.addFlashAttribute("sentTest", false);
+        }
+        return "redirect:/user/visa-sekvenser/" + mailList.getId();
     }
     @GetMapping("/user/test-mejl-fardig/{id}")
     public String testMailFinished(Model model, @PathVariable long id, RedirectAttributes redirectAttributes, HttpServletRequest request) throws MessagingException, IOException, CsvException {
@@ -362,6 +472,14 @@ public class UserController {
         mailListRepository.delete(mailList);
         return "redirect:/user/koade-utskick?page=0";
     }
+    @PostMapping("/user/removesequence")
+    public String removeSequence(Model model, HttpServletRequest request){
+        long id = Long.parseLong(request.getParameter("id"));
+        SequenceList sequenceList = sequenceListRepository.findById(id);
+        long idToMailList = sequenceList.getMailListId();
+        sequenceListRepository.delete(sequenceList);
+        return "redirect:/user/visa-sekvenser/" + idToMailList;
+    }
     @PostMapping("/user/removelist-finished")
     public String removeListFinished(Model model, HttpServletRequest request){
         long id = Long.parseLong(request.getParameter("id"));
@@ -465,34 +583,7 @@ public class UserController {
                     String completeData = request.getParameter("completeData");
                     String separator = request.getParameter("separator");
 
-                    //Lists to split the data
-                    ArrayList<String> sequenceContentList = new ArrayList<>();
-                    ArrayList<String> sequenceAfterList = new ArrayList<>();
-                    ArrayList<String> titleSequenceList = new ArrayList<>();
-
-                    //List of actual objects
                     MailList mailList = new MailList();
-
-                    String[] sequenceContent = request.getParameterValues("sequenceContent[]");
-                    String[] sequenceAfter = request.getParameterValues("sequenceAfter[]");
-                    String[] titleSequence = request.getParameterValues("titleSequence[]");
-
-                    if(sequenceContent != null){
-                        for(int i = 0; i<sequenceContent.length;i++){
-                            sequenceContentList.add(sequenceContent[i]);
-                        }
-                    }
-                    if(sequenceAfter != null){
-                        for(int i = 0; i<sequenceAfter.length;i++){
-                            sequenceAfterList.add(sequenceAfter[i]);
-                        }
-                    }
-                    if(titleSequence != null){
-                        for(int i = 0; i<titleSequence.length;i++){
-                            titleSequenceList.add(titleSequence[i]);
-                        }
-                    }
-                    //MailList
                     mailList.setFileName(fileName);
                     mailList.setSeparatorValue(separator);
                     mailList.setIntervalPeriod(Integer.parseInt(interval));
@@ -501,18 +592,7 @@ public class UserController {
                     mailList.setMainContent(mainContent);
                     mailList.setTitle(title);
                     mailList.setUserId(user.getId());
-                    MailList savedMailList = staticMailListRepository.save(mailList);
-
-                    //SequenceList
-                    for(int i = 0; i<sequenceContentList.size();i++){
-                        SequenceList sequenceList = new SequenceList();
-                        sequenceList.setMailListId(savedMailList.getId());
-                        sequenceList.setTitle(titleSequenceList.get(i));
-                        sequenceList.setMainContent(sequenceContentList.get(i));
-                        sequenceList.setSequenceAfterDays(Integer.parseInt(sequenceAfterList.get(i)));
-                        sequenceList.setUserId(user.getId());
-                        staticSequenceListRepository.save(sequenceList);
-                    }
+                    staticMailListRepository.save(mailList);
 
                     //MailRow
                     CSVReader reader = new CSVReaderBuilder(
@@ -611,7 +691,7 @@ public class UserController {
         }
     }
     @PostMapping("/user/edit-list/{id}")
-    public String editListComplete(Model model, HttpServletRequest request, @PathVariable long id) throws CsvException, IOException {
+    public String editListComplete(Model model, HttpServletRequest request, @PathVariable long id, RedirectAttributes redirectAttributes) throws CsvException, IOException {
         String fileName = request.getParameter("name");
         String dispatchDate = request.getParameter("date");
         String mainContent = request.getParameter("mainContent");
@@ -619,56 +699,6 @@ public class UserController {
         String title = request.getParameter("title");
         String interval = request.getParameter("interval");
 
-        ArrayList<String> sequenceContentList = new ArrayList<>();
-        ArrayList<String> sequenceAfterList = new ArrayList<>();
-        ArrayList<String> titleSequenceList = new ArrayList<>();
-        ArrayList<Boolean> finishedList = new ArrayList<>();
-        ArrayList<Boolean> startedSendingList = new ArrayList<>();
-
-        String[] sequenceContent = request.getParameterValues("sequenceContent[]");
-        String[] sequenceAfter = request.getParameterValues("sequenceAfter[]");
-        String[] titleSequence = request.getParameterValues("titleSequence[]");
-        String[] finished = request.getParameterValues("finished[]");
-        String[] startedSending = request.getParameterValues("startedSending[]");
-
-
-        if(sequenceContent != null){
-            for(int i = 0; i<sequenceContent.length;i++){
-                System.out.println(sequenceContent[i]);
-                sequenceContentList.add(sequenceContent[i]);
-            }
-        }
-        if(sequenceAfter != null){
-            for(int i = 0; i<sequenceAfter.length;i++){
-                sequenceAfterList.add(sequenceAfter[i]);
-            }
-        }
-        if(titleSequence != null){
-            for(int i = 0; i<titleSequence.length;i++){
-                titleSequenceList.add(titleSequence[i]);
-            }
-        }
-
-        if(finished != null){
-            for(int i = 0; i<finished.length;i++){
-                if(finished[i].contentEquals("true")){
-                    finishedList.add(true);
-                }
-                else{
-                    finishedList.add(false);
-                }
-            }
-        }
-        if(startedSending != null){
-            for(int i = 0; i<startedSending.length;i++){
-                if(startedSending[i].contentEquals("true")){
-                    startedSendingList.add(true);
-                }
-                else{
-                    startedSendingList.add(false);
-                }
-            }
-        }
         User user = returnCurrentUser();
         //MailList
         MailList mailList = mailListRepository.findById(id);
@@ -681,32 +711,7 @@ public class UserController {
         mailList.setUserId(user.getId());
         mailListRepository.save(mailList);
 
-        ArrayList<SequenceList> oldSequenceLists = sequenceListRepository.findByMailListId(mailList.getId());
-        for(int i = 0; i<oldSequenceLists.size();i++){
-            sequenceListRepository.delete(oldSequenceLists.get(i));
-        }
-
-        ArrayList<SequenceList> newSequenceLists = new ArrayList<>();
-        //SequenceList
-        for(int i = 0; i<sequenceContentList.size();i++){
-            SequenceList sequenceList = new SequenceList();
-            sequenceList.setMailListId(mailList.getId());
-            sequenceList.setTitle(titleSequenceList.get(i));
-            if(finishedList.size()>0){
-                sequenceList.setFinished(finishedList.get(i));
-                sequenceList.setStartedSending(startedSendingList.get(i));
-            }
-            else{
-                sequenceList.setStartedSending(false);
-                sequenceList.setFinished(false);
-            }
-            sequenceList.setOngoing(false);
-            sequenceList.setMainContent(sequenceContentList.get(i));
-            sequenceList.setSequenceAfterDays(Integer.parseInt(sequenceAfterList.get(i)));
-            sequenceList.setUserId(user.getId());
-            newSequenceLists.add(sequenceList);
-        }
-        sequenceListRepository.saveAll(newSequenceLists);
+        redirectAttributes.addFlashAttribute("edited", true);
         return "redirect:/user/koade-utskick?page=0";
     }
     public List<String> parseDataRowToJson(ArrayList<DataRow> dataRows){
@@ -812,6 +817,75 @@ public class UserController {
 
         //Replace the content with variables
         String replacedContent = mailList.getMainContent();
+
+        String replacedFooter = mailList.getFooterContent();
+
+        for(int i = 0; i<variables.size();i++){
+            replacedContent = replacedContent.replaceAll("\\{" + variables.get(i).getName() + "}", values.get(variables.get(i).getIndex()).getName());
+        }
+
+        for(int i = 0; i<variables.size();i++){
+            replacedFooter = replacedFooter.replaceAll("\\{" + variables.get(i).getName() + "}", values.get(variables.get(i).getIndex()).getName());
+        }
+
+        // Now set the actual message
+        message.setContent(replacedContent + "<br><br>" + replacedFooter, "text/html; charset=UTF-8");
+        // Send message
+        Transport.send(message);
+        System.out.println("Sent message successfully for user " + user.getEmail() + ". Interval=" + mailList.getIntervalPeriod() + "ms");
+    }
+    public void sendTestEmailToSelfSequence(MailRow mailRow, User user, SequenceList sequenceList, HttpServletRequest request, MailList mailList) throws MessagingException, IOException, CsvException {
+        // Recipient's email ID needs to be mentioned.
+        String to = user.getEmail();
+
+        // Sender's email ID needs to be mentioned
+        String from = user.getMailEmail();
+        final String username = user.getMailEmail();
+        final String password = user.getMailPassword();
+
+        // Assuming you are sending email through relay.jangosmtp.net
+        String host = user.getMailHost();
+
+        Properties props = new Properties();
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", host);
+        props.put("mail.smtp.port", user.getMailPort());
+
+        // Get the Session object.
+        Session session = Session.getInstance(props,
+                new javax.mail.Authenticator() {
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(username, password);
+                    }
+                });
+        // Create a default MimeMessage object.
+        Message message = new MimeMessage(session);
+        // Set From: header field of the header.
+        message.setFrom(new InternetAddress(from, user.getMailAlias()));
+        // Set To: header field of the header.
+        message.setRecipients(Message.RecipientType.TO,
+                InternetAddress.parse(to));
+
+        //Replace the title with variables
+        Pageable pageableHeader = PageRequest.of(0, 1);
+
+        String replacedTitle = sequenceList.getTitle();
+        Page<MailRow> headerValues = mailRowRepository.findByMailListIdAndIsHeader(sequenceList.getMailListId(), true, pageableHeader);
+        ArrayList<DataRow> variables = parseCSVRows(headerValues.getContent().get(0).getDataRow(), 0, mailList.getSeparatorValue(), true);
+
+        //Make a complete line
+
+        ArrayList<DataRow> values = parseCSVRows(mailRow.getDataRow(), 0, mailList.getSeparatorValue(), false);
+
+        for(int i = 0; i<variables.size();i++){
+            replacedTitle = replacedTitle.replaceAll("\\{" + variables.get(i).getName() + "}", values.get(variables.get(i).getIndex()).getName());
+        }
+        // Set Subject: header field
+        message.setSubject(replacedTitle);
+
+        //Replace the content with variables
+        String replacedContent = sequenceList.getMainContent();
 
         String replacedFooter = mailList.getFooterContent();
 
