@@ -312,7 +312,7 @@ public class EmailService {
         if(allMailRows.size()>0) {
             for (int i = 0; i < allMailRows.size(); i++) {
                 if (allMailRows.get(i).getSentDate() != null) {
-                    if (!allMailRows.get(i).getSentDate().after(dateBeforeXDays) && sequenceList.isStartedSending()) {
+                    if (allMailRows.get(i).getSentDate().before(dateBeforeXDays) && sequenceList.isStartedSending()) {
                         finished = false;
                         break;
                     }
