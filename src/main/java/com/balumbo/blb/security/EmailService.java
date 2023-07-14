@@ -318,9 +318,9 @@ public class EmailService {
             }
         }
 
+        sequenceList.setFinished(finished);
         if(mailRows.size()==0){
             System.out.println("no emails to send to, all are too early");
-            sequenceList.setFinished(finished);
             sequenceList.setOngoing(false);
         }
         sequenceList = sequenceListRepository.save(sequenceList);
