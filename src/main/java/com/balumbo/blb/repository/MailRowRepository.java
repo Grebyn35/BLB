@@ -19,7 +19,7 @@ public interface MailRowRepository extends CrudRepository<MailRow,Long> {
     ArrayList<MailRow> findAllByUserId(long userId);
     ArrayList<MailRow> findByMailListId(long id);
 
-    ArrayList<MailRow> findAllByMailListIdAndError(long id, boolean error);
+    ArrayList<MailRow> findAllByMailListIdAndErrorAndSentDateIsNotNull(long id, boolean error);
     ArrayList<MailRow> findByMailListIdAndErrorIsFalseAndSentIsNull(long id);
     MailRow findFirstByMailListIdAndIsHeader(long id, boolean header);
 

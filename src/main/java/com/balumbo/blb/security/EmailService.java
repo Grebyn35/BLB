@@ -306,17 +306,13 @@ public class EmailService {
 
         sequenceList.setOngoing(true);
 
-        ArrayList<MailRow> allMailRows = mailRowRepository.findAllByMailListIdAndError(mailList.getId(), false);
+        ArrayList<MailRow> allMailRows = mailRowRepository.findAllByMailListIdAndErrorAndSentDateIsNotNull(mailList.getId(), false);
 
         boolean finished = true;
-        if(allMailRows.size()>0) {
-            for (int i = 0; i < allMailRows.size(); i++) {
-                if (allMailRows.get(i).getSentDate() != null) {
-                    if (allMailRows.get(i).getSentDate().before(dateBeforeXDays) && sequenceList.isStartedSending()) {
-                        finished = false;
-                        break;
-                    }
-                }
+        for (int i = 0; i < allMailRows.size(); i++) {
+            if (allMailRows.get(i).getSentDate().before(dateBeforeXDays) && sequenceList.isStartedSending()) {
+                finished = false;
+                break;
             }
         }
 
